@@ -1,0 +1,15 @@
+package ru.itmo.market.model.dto.response
+
+import java.math.BigDecimal
+import java.time.LocalDateTime
+
+data class CommentResponse(
+    val id: Long,
+    val productId: Long,
+    val userId: Long,
+    val userName: String? = null,
+    val text: String,
+    val rating: Int,
+    val createdAt: LocalDateTime,
+    val updatedAt: LocalDateTime
+)

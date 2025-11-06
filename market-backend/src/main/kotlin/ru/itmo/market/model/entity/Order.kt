@@ -1,0 +1,37 @@
+package ru.itmo.market.model.entity
+
+import jakarta.persistence.*
+import jakarta.validation.constraints.*
+import org.hibernate.annotations.CreationTimestamp
+import org.hibernate.annotations.UpdateTimestamp
+import ru.itmo.market.model.enums.UserRole
+import java.time.LocalDateTime
+
+@Entity
+@Table(name = "orders")
+data class Order(
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    val id: Long = 0,
+
+    @Column(name = "user_id", nullable = false)
+    val userId: Long,
+
+    @Column(name = "total_price", nullable = false)
+    val totalPrice: java.math.BigDecimal = java.math.BigDecimal.ZERO,
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    val status: ru.itmo.market.model.enums.OrderStatus = ru.itmo.market.model.enums.OrderStatus.CART,
+
+    @Column(name = "delivery_address", columnDefinition = "TEXT")
+    val deliveryAddress: String? = null,
+
+    @CreationTimestamp
+    @Column(name = "created_at", nullable = false, updatable = false)
+    val createdAt: LocalDateTime = LocalDateTime.now(),
+
+    @UpdateTimestamp
+    @Column(name = "updated_at", nullable = false)
+    val updatedAt: LocalDateTime = LocalDateTime.now()
+)

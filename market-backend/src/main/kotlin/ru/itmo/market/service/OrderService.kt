@@ -1,0 +1,250 @@
+package ru.itmo.market.service
+
+import org.springframework.data.domain.PageRequest
+import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
+import ru.itmo.market.exception.BadRequestException
+import ru.itmo.market.exception.ResourceNotFoundException
+import ru.itmo.market.model.dto.response.OrderResponse
+import ru.itmo.market.model.dto.response.OrderItemResponse
+import ru.itmo.market.model.dto.response.ProductResponse
+import ru.itmo.market.model.dto.response.PaginatedResponse
+import ru.itmo.market.model.entity.Order
+import ru.itmo.market.model.entity.OrderItem
+import ru.itmo.market.model.enums.OrderStatus
+import ru.itmo.market.repository.*
+import java.math.BigDecimal
+
+@Service
+class OrderService(
+    private val orderRepository: OrderRepository,
+    private val orderItemRepository: OrderItemRepository,
+    private val productRepository: ProductRepository,
+    private val commentRepository: CommentRepository
+) {
+
+    fun getCart(userId: Long): OrderResponse {
+        val cart = orderRepository.findByUserIdAndStatus(userId, OrderStatus.CART)
+            .orElseGet {
+                val newCart = Order(
+                    userId = userId,
+                    status = OrderStatus.CART,
+                    totalPrice = BigDecimal.ZERO
+                )
+                orderRepository.save(newCart)
+            }
+        return cart.toResponse()
+    }
+
+    /**
+     * ТРАНЗАКЦИЯ №1: добавить товар в корзину
+     * Обоснование: атомарность. Если товар не существует, корзина не должна измениться.
+     * Все изменения должны быть выполнены или откатаны вместе.
+     */
+    @Transactional
+    fun addToCart(userId: Long, productId: Long, quantity: Int): OrderResponse {
+        // 1. Получить или создать корзину (CART)
+        val cart = orderRepository.findByUserIdAndStatus(userId, OrderStatus.CART)
+            .orElseGet {
+                val newCart = Order(
+                    userId = userId,
+                    status = OrderStatus.CART,
+                    totalPrice = BigDecimal.ZERO
+                )
+                orderRepository.save(newCart)
+            }
+
+        // 2. Проверить существование товара
+        val product = productRepository.findById(productId)
+            .orElseThrow { ResourceNotFoundException("Товар с ID $productId не найден") }
+
+        // 3. Добавить/обновить OrderItem
+        val existingItem = orderItemRepository.findByOrderIdAndProductId(cart.id, productId)
+        
+        if (existingItem.isPresent) {
+            val item = existingItem.get()
+            val updatedItem = item.copy(quantity = item.quantity + quantity)
+            orderItemRepository.save(updatedItem)
+        } else {
+            val newItem = OrderItem(
+                orderId = cart.id,
+                productId = productId,
+                quantity = quantity,
+                price = product.price
+            )
+            orderItemRepository.save(newItem)
+        }
+
+        // 4. Пересчитать totalPrice
+        val items = orderItemRepository.findAllByOrderId(cart.id)
+        val newTotalPrice = items.fold(BigDecimal.ZERO) { acc, item ->
+            acc + item.price.multiply(BigDecimal(item.quantity))
+        }
+
+        val updatedCart = cart.copy(totalPrice = newTotalPrice)
+        val savedCart = orderRepository.save(updatedCart)
+        return savedCart.toResponse()
+    }
+
+    @Transactional
+    fun updateCartItemQuantity(userId: Long, itemId: Long, quantity: Int): OrderResponse {
+        val item = orderItemRepository.findById(itemId)
+            .orElseThrow { ResourceNotFoundException("OrderItem с ID $itemId не найден") }
+
+        val cart = orderRepository.findById(item.orderId)
+            .orElseThrow { ResourceNotFoundException("Order не найден") }
+
+        if (cart.userId != userId) {
+            throw BadRequestException("Этот товар не в вашей корзине")
+        }
+
+        if (quantity <= 0) {
+            orderItemRepository.deleteById(itemId)
+        } else {
+            val updatedItem = item.copy(quantity = quantity)
+            orderItemRepository.save(updatedItem)
+        }
+
+        // Пересчитать totalPrice
+        val items = orderItemRepository.findAllByOrderId(cart.id)
+        val newTotalPrice = items.fold(BigDecimal.ZERO) { acc, item ->
+            acc + item.price.multiply(BigDecimal(item.quantity))
+        }
+
+        val updatedCart = cart.copy(totalPrice = newTotalPrice)
+        val savedCart = orderRepository.save(updatedCart)
+        return savedCart.toResponse()
+    }
+
+    @Transactional
+    fun removeFromCart(userId: Long, itemId: Long): OrderResponse {
+        val item = orderItemRepository.findById(itemId)
+            .orElseThrow { ResourceNotFoundException("OrderItem с ID $itemId не найден") }
+
+        val cart = orderRepository.findById(item.orderId)
+            .orElseThrow { ResourceNotFoundException("Order не найден") }
+
+        if (cart.userId != userId) {
+            throw BadRequestException("Этот товар не в вашей корзине")
+        }
+
+        orderItemRepository.deleteById(itemId)
+
+        // Пересчитать totalPrice
+        val items = orderItemRepository.findAllByOrderId(cart.id)
+        val newTotalPrice = items.fold(BigDecimal.ZERO) { acc, item ->
+            acc + item.price.multiply(BigDecimal(item.quantity))
+        }
+
+        val updatedCart = cart.copy(totalPrice = newTotalPrice)
+        val savedCart = orderRepository.save(updatedCart)
+        return savedCart.toResponse()
+    }
+
+    @Transactional
+    fun clearCart(userId: Long): Unit {
+        val cart = orderRepository.findByUserIdAndStatus(userId, OrderStatus.CART)
+            .orElseThrow { ResourceNotFoundException("Корзина не найдена") }
+
+        orderItemRepository.deleteByOrderId(cart.id)
+        val updatedCart = cart.copy(totalPrice = BigDecimal.ZERO)
+        orderRepository.save(updatedCart)
+    }
+
+    /**
+     * ТРАНЗАКЦИЯ №2: создать заказ
+     * Обоснование: атомарность оформления. Недопустима ситуация когда заказ создан,
+     * но корзина не очищена, или наоборот.
+     */
+    @Transactional
+    fun createOrder(userId: Long, deliveryAddress: String): OrderResponse {
+        // 1. Найти текущую корзину (CART)
+        val cart = orderRepository.findByUserIdAndStatus(userId, OrderStatus.CART)
+            .orElseThrow { BadRequestException("Корзина не найдена") }
+
+        // 2. Проверить что корзина не пуста
+        val items = orderItemRepository.findAllByOrderId(cart.id)
+        if (items.isEmpty()) {
+            throw BadRequestException("Корзина пуста. Добавьте товары перед оформлением заказа")
+        }
+
+        // 3. Изменить статус на PENDING
+        val pendingOrder = cart.copy(
+            status = OrderStatus.PENDING,
+            deliveryAddress = deliveryAddress
+        )
+        val savedOrder = orderRepository.save(pendingOrder)
+
+        // 4. Создать новую корзину (CART) для пользователя
+        val newCart = Order(
+            userId = userId,
+            status = OrderStatus.CART,
+            totalPrice = BigDecimal.ZERO
+        )
+        orderRepository.save(newCart)
+
+        return savedOrder.toResponse()
+    }
+
+    fun getUserOrders(userId: Long, page: Int, pageSize: Int): PaginatedResponse<OrderResponse> {
+        val pageable = PageRequest.of(page - 1, pageSize)
+        val orderPage = orderRepository.findAllByUserIdAndStatusNot(userId, OrderStatus.CART, pageable)
+        return PaginatedResponse(
+            data = orderPage.content.map { it.toResponse() },
+            page = page,
+            pageSize = pageSize,
+            totalElements = orderPage.totalElements,
+            totalPages = orderPage.totalPages
+        )
+    }
+
+    fun getOrderById(orderId: Long, userId: Long): OrderResponse {
+        val order = orderRepository.findByIdAndUserId(orderId, userId)
+            .orElseThrow { ResourceNotFoundException("Заказ с ID $orderId не найден") }
+        return order.toResponse()
+    }
+
+    private fun Order.toResponse(): OrderResponse {
+        val items = orderItemRepository.findAllByOrderId(this.id)
+        val itemResponses = items.map { item ->
+            val product = productRepository.findById(item.productId)
+                .orElseThrow { ResourceNotFoundException("Товар с ID ${item.productId} не найден") }
+            val avgRating = commentRepository.getAverageRatingByProductId(product.id)
+            val commentCount = commentRepository.getCommentCountByProductId(product.id)
+            
+            OrderItemResponse(
+                id = item.id,
+                product = ProductResponse(
+                    id = product.id,
+                    name = product.name,
+                    description = product.description,
+                    price = product.price,
+                    imageUrl = product.imageUrl,
+                    shopId = product.shopId,
+                    sellerId = product.sellerId,
+                    status = product.status.name,
+                    rejectionReason = product.rejectionReason,
+                    averageRating = avgRating,
+                    commentsCount = commentCount,
+                    createdAt = product.createdAt,
+                    updatedAt = product.updatedAt
+                ),
+                quantity = item.quantity,
+                price = item.price,
+                subtotal = item.price.multiply(BigDecimal(item.quantity)),
+                createdAt = item.createdAt
+            )
+        }
+
+        return OrderResponse(
+            id = this.id,
+            userId = this.userId,
+            items = itemResponses,
+            totalPrice = this.totalPrice,
+            status = this.status.name,
+            deliveryAddress = this.deliveryAddress,
+            createdAt = this.createdAt,
+            updatedAt = this.updatedAt
+        )
+    }
+}
