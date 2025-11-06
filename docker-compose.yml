@@ -1,0 +1,76 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: itmo-market-postgres
+    environment:
+      POSTGRES_USER: ${DB_USER:-itmo_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-itmo_password}
+      POSTGRES_DB: ${DB_NAME:-itmo_market}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=ru_RU.UTF-8"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U itmo_user -d itmo_market"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - itmo-market-network
+
+  # Backend Application
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: itmo-market-backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SERVER_PORT: 8080
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-itmo_market}
+      DB_USER: ${DB_USER:-itmo_user}
+      DB_PASSWORD: ${DB_PASSWORD:-itmo_password}
+      JWT_SECRET: ${JWT_SECRET:-your-super-secret-key-change-in-production-min-256-bits-example-here-1234567890}
+      JWT_ACCESS_TOKEN_EXPIRATION: ${JWT_ACCESS_TOKEN_EXPIRATION:-900000}
+      JWT_REFRESH_TOKEN_EXPIRATION: ${JWT_REFRESH_TOKEN_EXPIRATION:-604800000}
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./backend/src:/app/src
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - itmo-market-network
+
+  # Adminer for database management
+  adminer:
+    image: adminer:latest
+    container_name: itmo-market-adminer
+    depends_on:
+      - postgres
+    ports:
+      - "8081:8080"
+    environment:
+      ADMINER_DEFAULT_SERVER: postgres
+    networks:
+      - itmo-market-network
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  itmo-market-network:
+    driver: bridge
