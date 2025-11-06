@@ -25,7 +25,7 @@ services:
   # Backend Application
   backend:
     build:
-      context: ./backend
+      context: ./market-backend
       dockerfile: Dockerfile
     container_name: itmo-market-backend
     depends_on:
