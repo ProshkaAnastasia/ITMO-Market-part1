@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.http.MediaType
+import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.context.TestPropertySource
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.get
@@ -23,12 +24,8 @@ import org.testcontainers.containers.PostgreSQLContainer
 
 @SpringBootTest
 @AutoConfigureMockMvc
+@ActiveProfiles("test")
 @Testcontainers
-@TestPropertySource(properties = [
-    "spring.datasource.url=jdbc:tc:postgresql:15://localhost/itmo_market_test",
-    "spring.jpa.hibernate.ddl-auto=validate",
-    "spring.flyway.enabled=true"
-])
 class OrderControllerIntegrationTest {
 
     companion object {

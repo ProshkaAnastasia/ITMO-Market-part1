@@ -3,10 +3,10 @@ spring:
     name: itmo-market-backend
   
   datasource:
-    url: jdbc:postgresql://postgres:5432/itmo_market_test
+    url: jdbc:tc:postgresql:15:///itmo_market
     username: itmo_user
     password: itmo_password
-    driver-class-name: org.postgresql.Driver
+    driver-class-name: org.testcontainers.jdbc.ContainerDatabaseDriver
     hikari:
       maximum-pool-size: 5
       minimum-idle: 1
