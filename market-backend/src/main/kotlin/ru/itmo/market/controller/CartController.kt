@@ -213,8 +213,3 @@ class CartController(
         return ResponseEntity.noContent().build()
     }
 }
-
-
-data class UpdateQuantityRequest(
-    val quantity: Int
-)

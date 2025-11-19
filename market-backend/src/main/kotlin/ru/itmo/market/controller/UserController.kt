@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.*
 import ru.itmo.market.model.dto.request.LoginRequest
 import ru.itmo.market.model.dto.request.RegisterRequest
 import ru.itmo.market.model.dto.request.RefreshTokenRequest
+import ru.itmo.market.model.dto.request.UpdateProfileRequest
 import ru.itmo.market.model.dto.response.TokenResponse
 import ru.itmo.market.model.dto.response.UserResponse
 import ru.itmo.market.service.AuthService
@@ -190,10 +191,3 @@ class UserController(
         return ResponseEntity.ok(userService.getUserById(id))
     }
 }
-
-
-data class UpdateProfileRequest(
-    val email: String? = null,
-    val firstName: String? = null,
-    val lastName: String? = null
-)
