@@ -3,29 +3,30 @@ package ru.itmo.market.integration
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.DisplayName
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.http.MediaType
 import org.springframework.test.context.ActiveProfiles
-import org.springframework.test.context.TestPropertySource
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.get
 import org.springframework.test.web.servlet.post
-import org.springframework.test.web.servlet.put
-import org.springframework.test.web.servlet.delete
-import ru.itmo.market.model.dto.request.LoginRequest
-import ru.itmo.market.model.dto.request.RegisterRequest
-import ru.itmo.market.repository.*
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
 import org.testcontainers.containers.PostgreSQLContainer
+import ru.itmo.market.repository.*
+import ru.itmo.market.model.dto.request.RejectProductRequest
+import ru.itmo.market.model.entity.User
+import ru.itmo.market.model.enums.UserRole
+import ru.itmo.market.security.jwt.JwtTokenProvider
 
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 @Testcontainers
-class ProductControllerIntegrationTest {
+@DisplayName("Moderation Controller Integration Tests")
+class ModerationControllerIntegrationTest {
 
     companion object {
         @Container
@@ -40,13 +41,22 @@ class ProductControllerIntegrationTest {
     private lateinit var mockMvc: MockMvc
 
     @Autowired
-    private lateinit var userRepository: UserRepository
+    private lateinit var objectMapper: ObjectMapper
+
+    @Autowired
+    private lateinit var productRepository: ProductRepository
 
     @Autowired
     private lateinit var shopRepository: ShopRepository
 
     @Autowired
-    private lateinit var productRepository: ProductRepository
+    private lateinit var userRepository: UserRepository
+
+    @Autowired
+    private lateinit var testAuthHelper: TestAuthHelper
+
+    @Autowired
+    private lateinit var jwtTokenProvider: JwtTokenProvider
 
     @BeforeEach
     fun setUp() {
@@ -56,8 +66,13 @@ class ProductControllerIntegrationTest {
     }
 
     @Test
-    fun `should get approved products with pagination`() {
-        mockMvc.get("/api/products") {
+    @DisplayName("should get pending products for moderator")
+    fun testGetPendingProducts() {
+        val moderator = testAuthHelper.createTestUser(username = "moderator", roles = setOf(UserRole.MODERATOR))
+        val token = testAuthHelper.createTokenForUser(moderator)
+
+        mockMvc.get("/api/moderation/products") {
+            header("Authorization", "Bearer $token")
             param("page", "1")
             param("pageSize", "20")
         }.andExpect {
@@ -69,14 +84,17 @@ class ProductControllerIntegrationTest {
     }
 
     @Test
-    fun `should search products by keyword`() {
-        mockMvc.get("/api/products/search") {
-            param("keywords", "laptop")
+    @DisplayName("should reject moderation endpoint for non-moderator")
+    fun testGetPendingProductsWithoutModeratorRole() {
+        val user = testAuthHelper.createTestUser()
+        val token = testAuthHelper.createTokenForUser(user)
+
+        mockMvc.get("/api/moderation/products") {
+            header("Authorization", "Bearer $token")
             param("page", "1")
             param("pageSize", "20")
         }.andExpect {
-            status { isOk() }
-            jsonPath("$.data") { isArray() }
+            status { isForbidden() }
         }
     }
 }

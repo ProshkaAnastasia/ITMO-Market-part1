@@ -1,31 +1,25 @@
 package ru.itmo.market.integration
 
-import com.fasterxml.jackson.databind.ObjectMapper
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.DisplayName
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
 import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.http.MediaType
 import org.springframework.test.context.ActiveProfiles
-import org.springframework.test.context.TestPropertySource
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.get
-import org.springframework.test.web.servlet.post
-import org.springframework.test.web.servlet.put
-import org.springframework.test.web.servlet.delete
-import ru.itmo.market.model.dto.request.LoginRequest
-import ru.itmo.market.model.dto.request.RegisterRequest
-import ru.itmo.market.repository.*
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
 import org.testcontainers.containers.PostgreSQLContainer
+import ru.itmo.market.repository.UserRepository
 
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 @Testcontainers
-class ProductControllerIntegrationTest {
+@DisplayName("User Controller Integration Tests")
+class UserControllerIntegrationTest {
 
     companion object {
         @Container
@@ -43,40 +37,34 @@ class ProductControllerIntegrationTest {
     private lateinit var userRepository: UserRepository
 
     @Autowired
-    private lateinit var shopRepository: ShopRepository
-
-    @Autowired
-    private lateinit var productRepository: ProductRepository
+    private lateinit var testAuthHelper: TestAuthHelper
 
     @BeforeEach
     fun setUp() {
-        productRepository.deleteAll()
-        shopRepository.deleteAll()
         userRepository.deleteAll()
     }
 
     @Test
-    fun `should get approved products with pagination`() {
-        mockMvc.get("/api/products") {
-            param("page", "1")
-            param("pageSize", "20")
+    @DisplayName("should get current user profile when authorized")
+    fun testGetCurrentUserProfile() {
+        val user = testAuthHelper.createTestUser()
+        val token = testAuthHelper.createTokenForUser(user)
+
+        mockMvc.get("/api/users/me") {
+            header("Authorization", "Bearer $token")
         }.andExpect {
             status { isOk() }
-            jsonPath("$.data") { isArray() }
-            jsonPath("$.page") { value(1) }
-            jsonPath("$.pageSize") { value(20) }
+            jsonPath("$.id") { value(user.id.toInt()) }
+            jsonPath("$.username") { value(user.username) }
+            jsonPath("$.email") { value(user.email) }
         }
     }
 
     @Test
-    fun `should search products by keyword`() {
-        mockMvc.get("/api/products/search") {
-            param("keywords", "laptop")
-            param("page", "1")
-            param("pageSize", "20")
-        }.andExpect {
-            status { isOk() }
-            jsonPath("$.data") { isArray() }
+    @DisplayName("should reject profile request without authorization")
+    fun testGetProfileWithoutAuthorization() {
+        mockMvc.get("/api/users/me").andExpect {
+            status { isUnauthorized() }
         }
     }
 }

@@ -30,7 +30,7 @@ class AuthControllerIntegrationTest {
     companion object {
         @Container
         val postgres = PostgreSQLContainer<Nothing>("postgres:15").apply {
-            withDatabaseName("itmo_market_test")
+            withDatabaseName("itmo_market")
             withUsername("itmo_user")
             withPassword("itmo_password")
         }
