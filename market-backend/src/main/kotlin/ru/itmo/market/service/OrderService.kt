@@ -88,6 +88,7 @@ class OrderService(
 
     @Transactional
     fun updateCartItemQuantity(userId: Long, itemId: Long, quantity: Int): OrderResponse {
+        // Wrong logic: find active cart by user id -> find item in cart
         val item = orderItemRepository.findById(itemId)
             .orElseThrow { ResourceNotFoundException("OrderItem с ID $itemId не найден") }
 
@@ -118,6 +119,7 @@ class OrderService(
 
     @Transactional
     fun removeFromCart(userId: Long, itemId: Long): OrderResponse {
+        // Wrong logic: find active cart by user id -> find item in cart
         val item = orderItemRepository.findById(itemId)
             .orElseThrow { ResourceNotFoundException("OrderItem с ID $itemId не найден") }
 
