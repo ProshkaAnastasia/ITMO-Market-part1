@@ -10,6 +10,7 @@ import ru.itmo.market.model.dto.response.CommentResponse
 import ru.itmo.market.model.dto.response.PaginatedResponse
 import ru.itmo.market.model.entity.Comment
 import ru.itmo.market.model.entity.Product
+import ru.itmo.market.model.entity.User
 import ru.itmo.market.model.enums.ProductStatus
 import ru.itmo.market.repository.UserRepository
 import ru.itmo.market.repository.CommentRepository
@@ -65,4 +66,34 @@ class UserService(
             createdAt = this.createdAt
         )
     }
+
+        // In UserService.kt
+
+    // Returns the Entity (for internal use by AuthService)
+    fun findUserEntityByUsername(username: String): User {
+        return userRepository.findByUsername(username)
+            .orElseThrow { ResourceNotFoundException("Пользователь $username не найден") }
+    }
+
+    // Checks existence
+    fun existsByUsername(username: String): Boolean {
+        return userRepository.existsByUsername(username)
+    }
+
+    fun existsByEmail(email: String): Boolean {
+        return userRepository.existsByEmail(email)
+    }
+
+    // Saves a user entity (for registration)
+    @Transactional
+    fun saveUser(user: User): User {
+        return userRepository.save(user)
+    }
+
+    // Returns Entity by ID (if needed by other services for internal logic, or stick to getUserById returning DTO)
+    fun findUserEntityById(id: Long): User {
+        return userRepository.findById(id)
+            .orElseThrow { ResourceNotFoundException("Пользователь с ID $id не найден") }
+    }
+
 }

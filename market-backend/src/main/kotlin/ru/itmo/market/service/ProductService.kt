@@ -2,6 +2,7 @@ package ru.itmo.market.service
 
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import org.springframework.context.annotation.Lazy
 import ru.itmo.market.exception.ForbiddenException
 import ru.itmo.market.exception.ResourceNotFoundException
 import ru.itmo.market.model.dto.request.UpdateProductRequest
@@ -10,18 +11,14 @@ import ru.itmo.market.model.dto.response.PaginatedResponse
 import ru.itmo.market.model.dto.response.InfiniteScrollResponse
 import ru.itmo.market.model.entity.Product
 import ru.itmo.market.model.enums.ProductStatus
-import ru.itmo.market.model.enums.UserRole
-import ru.itmo.market.repository.CommentRepository
 import ru.itmo.market.repository.ProductRepository
 import org.springframework.data.domain.PageRequest
-import ru.itmo.market.exception.UnauthorizedException
-import ru.itmo.market.repository.ShopRepository
 
 @Service
 class ProductService(
     private val productRepository: ProductRepository,
-    private val shopRepository: ShopRepository,
-    private val commentRepository: CommentRepository
+    @Lazy private val shopService: ShopService,
+    @Lazy private val commentService: CommentService
 ) {
 
     fun getApprovedProducts(page: Int, pageSize: Int): PaginatedResponse<ProductResponse> {
@@ -65,6 +62,11 @@ class ProductService(
         return product.toResponse()
     }
 
+    // Internal method to check existence without converting to DTO (optional optimization)
+    fun existsById(productId: Long): Boolean {
+        return productRepository.existsById(productId)
+    }
+
     fun createProduct(
         name: String,
         description: String?,
@@ -73,8 +75,8 @@ class ProductService(
         shopId: Long,
         sellerId: Long
     ): ProductResponse {
-        val shop = shopRepository.findById(shopId)
-            .orElseThrow { ResourceNotFoundException("No such shop exists") }
+        // Decoupled: Use ShopService to validate shop
+        val shop = shopService.getShopById(shopId)
 
         if (shop.sellerId != sellerId) {
             throw ForbiddenException("Only shop owner can add products")
@@ -103,7 +105,6 @@ class ProductService(
         val product = productRepository.findById(productId)
             .orElseThrow { ResourceNotFoundException("Товар с ID $productId не найден") }
 
-        // Проверка прав
         if (product.sellerId != userId && !userRoles.contains("MODERATOR")) {
             throw ForbiddenException("У вас нет прав для обновления этого товара")
         }
@@ -131,9 +132,27 @@ class ProductService(
         productRepository.deleteById(productId)
     }
 
+    fun countProductsByShopId(shopId: Long): Long {
+        return productRepository.countByShopId(shopId)
+    }
+
+    fun getProductsByShopId(shopId: Long, page: Int, pageSize: Int): PaginatedResponse<ProductResponse> {
+        val pageable = PageRequest.of(page - 1, pageSize)
+        val productPage = productRepository.findAllByShopId(shopId, pageable)
+        
+        return PaginatedResponse(
+            data = productPage.content.map { it.toResponse() },
+            page = page,
+            pageSize = pageSize,
+            totalElements = productPage.totalElements,
+            totalPages = productPage.totalPages
+        )
+    }
+
     private fun Product.toResponse(): ProductResponse {
-        val avgRating = commentRepository.getAverageRatingByProductId(this.id)
-        val commentCount = commentRepository.getCommentCountByProductId(this.id)
+        // Decoupled: Use CommentService for stats
+        val avgRating = commentService.getAverageRatingByProductId(this.id)
+        val commentCount = commentService.getCommentCountByProductId(this.id)
         
         return ProductResponse(
             id = this.id,

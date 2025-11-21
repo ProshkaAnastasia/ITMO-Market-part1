@@ -13,13 +13,12 @@ import ru.itmo.market.model.dto.request.RegisterRequest
 import ru.itmo.market.model.dto.response.TokenResponse
 import ru.itmo.market.model.entity.User
 import ru.itmo.market.model.enums.UserRole
-import ru.itmo.market.repository.UserRepository
 import ru.itmo.market.security.jwt.JwtTokenProvider
 import java.time.LocalDateTime
 
 @Service
 class AuthService(
-    private val userRepository: UserRepository,
+    private val userService: UserService, // Decoupled
     private val passwordEncoder: PasswordEncoder,
     private val jwtTokenProvider: JwtTokenProvider,
     private val authenticationManager: AuthenticationManager
@@ -27,15 +26,13 @@ class AuthService(
 
     @Transactional
     fun register(request: RegisterRequest): TokenResponse {
-        // Проверка на существование пользователя
-        if (userRepository.existsByUsername(request.username)) {
+        if (userService.existsByUsername(request.username)) {
             throw ConflictException("Username '${request.username}' уже занят")
         }
-        if (userRepository.existsByEmail(request.email)) {
+        if (userService.existsByEmail(request.email)) {
             throw ConflictException("Email '${request.email}' уже зарегистрирован")
         }
 
-        // Создание нового пользователя
         val user = User(
             username = request.username,
             email = request.email,
@@ -47,9 +44,8 @@ class AuthService(
             updatedAt = LocalDateTime.now()
         )
 
-        val savedUser = userRepository.save(user)
+        val savedUser = userService.saveUser(user)
 
-        // Генерация токенов
         val accessToken = jwtTokenProvider.generateAccessToken(
             savedUser.id,
             savedUser.username,
@@ -60,7 +56,7 @@ class AuthService(
         return TokenResponse(
             accessToken = accessToken,
             refreshToken = refreshToken,
-            expiresIn = 900 // 15 minutes
+            expiresIn = 900
         )
     }
 
@@ -76,10 +72,8 @@ class AuthService(
             throw UnauthorizedException("Неверное имя пользователя или пароль")
         }
 
-        val user = userRepository.findByUsername(request.username)
-            .orElseThrow { UnauthorizedException("Пользователь не найден") }
+        val user = userService.findUserEntityByUsername(request.username)
 
-        // Генерация токенов
         val accessToken = jwtTokenProvider.generateAccessToken(
             user.id,
             user.username,
@@ -90,7 +84,7 @@ class AuthService(
         return TokenResponse(
             accessToken = accessToken,
             refreshToken = refreshToken,
-            expiresIn = 900 // 15 minutes
+            expiresIn = 900
         )
     }
 
@@ -100,10 +94,8 @@ class AuthService(
         }
 
         val userId = jwtTokenProvider.getUserIdFromToken(refreshToken)
-        val user = userRepository.findById(userId)
-            .orElseThrow { UnauthorizedException("Пользователь не найден") }
+        val user = userService.findUserEntityById(userId)
 
-        // Генерация новых токенов
         val newAccessToken = jwtTokenProvider.generateAccessToken(
             user.id,
             user.username,
@@ -114,7 +106,7 @@ class AuthService(
         return TokenResponse(
             accessToken = newAccessToken,
             refreshToken = newRefreshToken,
-            expiresIn = 900 // 15 minutes
+            expiresIn = 900
         )
     }
 }

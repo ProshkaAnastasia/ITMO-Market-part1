@@ -6,29 +6,26 @@ import org.springframework.transaction.annotation.Transactional
 import ru.itmo.market.exception.ConflictException
 import ru.itmo.market.exception.ForbiddenException
 import ru.itmo.market.exception.ResourceNotFoundException
-import ru.itmo.market.model.dto.response.ShopResponse
-import ru.itmo.market.model.dto.response.ProductResponse
 import ru.itmo.market.model.dto.response.PaginatedResponse
+import ru.itmo.market.model.dto.response.ProductResponse
+import ru.itmo.market.model.dto.response.ShopResponse
 import ru.itmo.market.model.entity.Shop
 import ru.itmo.market.repository.ShopRepository
-import ru.itmo.market.repository.ProductRepository
-import ru.itmo.market.repository.UserRepository
-import ru.itmo.market.repository.CommentRepository
-import ru.itmo.market.model.enums.ProductStatus
 
 @Service
 class ShopService(
     private val shopRepository: ShopRepository,
-    private val productRepository: ProductRepository,
-    private val userRepository: UserRepository,
-    private val commentRepository: CommentRepository
+    // We now inject Services, not Repositories
+    private val productService: ProductService,
+    private val userService: UserService
 ) {
 
     fun getAllShops(page: Int, pageSize: Int): PaginatedResponse<ShopResponse> {
         val pageable = PageRequest.of(page - 1, pageSize)
         val shopPage = shopRepository.findAll(pageable)
+        
         return PaginatedResponse(
-            data = shopPage.content.map { it.toResponse() },
+            data = shopPage.content.map { convertToResponse(it) },
             page = page,
             pageSize = pageSize,
             totalElements = shopPage.totalElements,
@@ -39,47 +36,21 @@ class ShopService(
     fun getShopById(shopId: Long): ShopResponse {
         val shop = shopRepository.findById(shopId)
             .orElseThrow { ResourceNotFoundException("Магазин с ID $shopId не найден") }
-        return shop.toResponse()
+        return convertToResponse(shop)
     }
 
     fun getShopProducts(shopId: Long, page: Int, pageSize: Int): PaginatedResponse<ProductResponse> {
-        // Проверить что магазин существует
-        shopRepository.findById(shopId)
-            .orElseThrow { ResourceNotFoundException("Магазин с ID $shopId не найден") }
+        // 1. Verify Shop exists (ShopService's responsibility)
+        if (!shopRepository.existsById(shopId)) {
+            throw ResourceNotFoundException("Магазин с ID $shopId не найден")
+        }
 
-        val pageable = PageRequest.of(page - 1, pageSize)
-        val productPage = productRepository.findAllByShopId(shopId, pageable)
-        return PaginatedResponse(
-            data = productPage.content.map { product ->
-                val avgRating = commentRepository.getAverageRatingByProductId(product.id)
-                val commentCount = commentRepository.getCommentCountByProductId(product.id)
-                
-                ProductResponse(
-                    id = product.id,
-                    name = product.name,
-                    description = product.description,
-                    price = product.price,
-                    imageUrl = product.imageUrl,
-                    shopId = product.shopId,
-                    sellerId = product.sellerId,
-                    status = product.status.name,
-                    rejectionReason = product.rejectionReason,
-                    averageRating = avgRating,
-                    commentsCount = commentCount,
-                    createdAt = product.createdAt,
-                    updatedAt = product.updatedAt
-                )
-            },
-            page = page,
-            pageSize = pageSize,
-            totalElements = productPage.totalElements,
-            totalPages = productPage.totalPages
-        )
+        // 2. Delegate data fetching to ProductService
+        return productService.getProductsByShopId(shopId, page, pageSize)
     }
 
     @Transactional
     fun createShop(sellerId: Long, name: String, description: String?, avatarUrl: String?): ShopResponse {
-        // Проверить что продавец ещё не создал магазин
         if (shopRepository.existsBySellerId(sellerId)) {
             throw ConflictException("Вы уже создали магазин. Один продавец может иметь только один магазин")
         }
@@ -87,6 +58,7 @@ class ShopService(
         if (name.isBlank()) {
             throw IllegalArgumentException("Название магазина не может быть пустым")
         }
+
         val shop = Shop(
             name = name,
             description = description,
@@ -94,7 +66,7 @@ class ShopService(
             sellerId = sellerId
         )
         val savedShop = shopRepository.save(shop)
-        return savedShop.toResponse()
+        return convertToResponse(savedShop)
     }
 
     @Transactional
@@ -119,30 +91,28 @@ class ShopService(
         )
 
         val savedShop = shopRepository.save(updatedShop)
-        return savedShop.toResponse()
+        return convertToResponse(savedShop)
     }
 
-    private fun Shop.toResponse(): ShopResponse {
-        val seller = userRepository.findById(this.sellerId)
-            .orElseThrow { ResourceNotFoundException("Продавец не найден") }
-        val productCount = productRepository.countByShopId(this.id) ?: 0L
+    /**
+     * Helper method to convert Entity to Response.
+     * This replaces the extension function so we can easily access injected services.
+     */
+    private fun convertToResponse(shop: Shop): ShopResponse {
+        // Fetch data from other domains via Services
+        val seller = userService.getUserById(shop.sellerId)
+        val productCount = productService.countProductsByShopId(shop.id)
 
         return ShopResponse(
-            id = this.id,
-            name = this.name,
-            description = this.description,
-            avatarUrl = this.avatarUrl,
-            sellerId = this.sellerId,
+            id = shop.id,
+            name = shop.name,
+            description = shop.description,
+            avatarUrl = shop.avatarUrl,
+            sellerId = shop.sellerId,
             sellerName = seller.firstName + " " + seller.lastName,
             productsCount = productCount,
-            createdAt = this.createdAt,
-            updatedAt = this.updatedAt
+            createdAt = shop.createdAt,
+            updatedAt = shop.updatedAt
         )
     }
-}
-
-// Extension function для ProductRepository
-fun ProductRepository.countByShopId(shopId: Long): Long? {
-    val pageable = PageRequest.of(0, 1)
-    return this.findAllByShopId(shopId, pageable).totalElements
 }

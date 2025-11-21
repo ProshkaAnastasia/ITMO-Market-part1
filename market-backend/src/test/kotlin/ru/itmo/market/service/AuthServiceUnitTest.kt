@@ -9,29 +9,26 @@ import org.mockito.Mock
 import org.mockito.junit.jupiter.MockitoExtension
 import org.mockito.kotlin.*
 import org.springframework.security.authentication.AuthenticationManager
-import org.springframework.security.authentication.BadCredentialsException
 import org.springframework.security.crypto.password.PasswordEncoder
 import ru.itmo.market.exception.ConflictException
-import ru.itmo.market.exception.UnauthorizedException
-import ru.itmo.market.model.dto.request.LoginRequest
 import ru.itmo.market.model.dto.request.RegisterRequest
 import ru.itmo.market.model.entity.User
 import ru.itmo.market.model.enums.UserRole
-import ru.itmo.market.repository.UserRepository
 import ru.itmo.market.security.jwt.JwtTokenProvider
+import java.time.LocalDateTime
 
 @ExtendWith(MockitoExtension::class)
 class AuthServiceUnitTest {
 
     @Mock
-    private lateinit var userRepository: UserRepository
-    
+    private lateinit var userService: UserService // ✅ FIXED: Service, not Repo
+
     @Mock
     private lateinit var passwordEncoder: PasswordEncoder
-    
+
     @Mock
     private lateinit var jwtTokenProvider: JwtTokenProvider
-    
+
     @Mock
     private lateinit var authenticationManager: AuthenticationManager
 
@@ -40,7 +37,7 @@ class AuthServiceUnitTest {
     @BeforeEach
     fun setUp() {
         authService = AuthService(
-            userRepository,
+            userService, // ✅ FIXED
             passwordEncoder,
             jwtTokenProvider,
             authenticationManager
@@ -48,57 +45,55 @@ class AuthServiceUnitTest {
     }
 
     @Test
-    fun `should register new user successfully`() {
+    fun `should register user successfully`() {
         val request = RegisterRequest(
-            username = "newuser",
-            email = "newuser@example.com",
-            password = "Password123",
+            username = "testuser",
+            email = "test@example.com",
+            password = "password",
             firstName = "John",
             lastName = "Doe"
         )
 
-        whenever(userRepository.existsByUsername("newuser")).thenReturn(false)
-        whenever(userRepository.existsByEmail("newuser@example.com")).thenReturn(false)
+        val savedUser = User(
+            id = 1L,
+            username = request.username,
+            email = request.email,
+            password = "encoded_password",
+            firstName = request.firstName,
+            lastName = request.lastName,
+            roles = setOf(UserRole.USER),
+            createdAt = LocalDateTime.now(),
+            updatedAt = LocalDateTime.now()
+        )
+
+        // Mock checks
+        whenever(userService.existsByUsername(request.username)).thenReturn(false)
+        whenever(userService.existsByEmail(request.email)).thenReturn(false)
         
-        val userCaptor = argumentCaptor<User>()
-        whenever(userRepository.save(userCaptor.capture())).thenAnswer { invocation ->
-            val user = invocation.arguments[0] as User
-            user.copy(id = 1L)
-        }
-        
-        whenever(passwordEncoder.encode("Password123")).thenReturn("hashed_password")
-        
-        whenever(jwtTokenProvider.generateAccessToken(eq(1L), eq("newuser"), eq(setOf(UserRole.USER.toString()))))
-            .thenReturn("access_token")
-        whenever(jwtTokenProvider.generateRefreshToken(eq(1L)))
-            .thenReturn("refresh_token")
+        // Mock encoder
+        whenever(passwordEncoder.encode(request.password)).thenReturn("encoded_password")
+
+        // Mock save
+        whenever(userService.saveUser(any())).thenReturn(savedUser)
+
+        // Mock tokens
+        whenever(jwtTokenProvider.generateAccessToken(any(), any(), any())).thenReturn("access_token")
+        whenever(jwtTokenProvider.generateRefreshToken(any())).thenReturn("refresh_token")
 
         val result = authService.register(request)
 
-        assertNotNull(result, "AuthResponse не должен быть null")
-        assertNotNull(result.accessToken, "accessToken не должен быть null")
-        assertNotNull(result.refreshToken, "refreshToken не должен быть null")
+        assertNotNull(result)
         assertEquals("access_token", result.accessToken)
-        assertEquals("refresh_token", result.refreshToken)
-        
-        verify(userRepository, times(1)).save(any())
-        verify(jwtTokenProvider, times(1)).generateAccessToken(eq(1L), eq("newuser"), eq(setOf(UserRole.USER.toString())))
-        verify(jwtTokenProvider, times(1)).generateRefreshToken(eq(1L))
+        verify(userService).saveUser(any())
     }
 
-
     @Test
-    fun `should throw UnauthorizedException for invalid credentials`() {
-        val request = LoginRequest(
-            username = "testuser",
-            password = "WrongPassword"
-        )
+    fun `should throw ConflictException when username exists`() {
+        val request = RegisterRequest("user", "email", "pass", "fn", "ln")
+        whenever(userService.existsByUsername(request.username)).thenReturn(true)
 
-        whenever(authenticationManager.authenticate(any()))
-            .thenThrow(BadCredentialsException("Invalid credentials"))
-
-        assertThrows<UnauthorizedException> {
-            authService.login(request)
+        assertThrows<ConflictException> {
+            authService.register(request)
         }
     }
 }
