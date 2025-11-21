@@ -3,7 +3,7 @@ spring:
     name: itmo-market-backend
   
   datasource:
-    url: jdbc:tc:postgresql:15:///itmo_market
+    url: jdbc:tc:postgresql:15-alpine:///itmo_market
     username: itmo_user
     password: itmo_password
     driver-class-name: org.testcontainers.jdbc.ContainerDatabaseDriver
