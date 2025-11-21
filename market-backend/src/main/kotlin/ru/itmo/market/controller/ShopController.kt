@@ -10,6 +10,8 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses
 import io.swagger.v3.oas.annotations.security.SecurityRequirement
 import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.validation.Valid
+import jakarta.validation.constraints.Max
+import jakarta.validation.constraints.Min
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.Authentication
@@ -52,9 +54,12 @@ class ShopController(
     fun getShops(
         @RequestParam(defaultValue = "1")
         @Parameter(description = "Номер страницы (начиная с 1)", example = "1")
+        @Min(1, message = "Страницы начинаются с 1")
         page: Int,
         @RequestParam(defaultValue = "20")
         @Parameter(description = "Количество магазинов на странице", example = "20")
+        @Min(1, message = "Размер страницы минимум 1")
+        @Max(50, message = "Размер страницы максимум 50")
         pageSize: Int
     ): ResponseEntity<PaginatedResponse<ShopResponse>> {
         return ResponseEntity.ok(shopService.getAllShops(page, pageSize))

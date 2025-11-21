@@ -14,10 +14,13 @@ import ru.itmo.market.model.enums.UserRole
 import ru.itmo.market.repository.CommentRepository
 import ru.itmo.market.repository.ProductRepository
 import org.springframework.data.domain.PageRequest
+import ru.itmo.market.exception.UnauthorizedException
+import ru.itmo.market.repository.ShopRepository
 
 @Service
 class ProductService(
     private val productRepository: ProductRepository,
+    private val shopRepository: ShopRepository,
     private val commentRepository: CommentRepository
 ) {
 
@@ -70,6 +73,13 @@ class ProductService(
         shopId: Long,
         sellerId: Long
     ): ProductResponse {
+        val shop = shopRepository.findById(shopId)
+            .orElseThrow { ResourceNotFoundException("No such shop exists") }
+
+        if (shop.sellerId != sellerId) {
+            throw ForbiddenException("Only shop owner can add products")
+        }
+
         val product = Product(
             name = name,
             description = description,

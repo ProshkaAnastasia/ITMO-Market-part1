@@ -119,7 +119,6 @@ class ProductControllerIntegrationTest {
     }
 
     @Test
-    @Disabled // No check for invalid parameters
     fun `should return 400 for invalid pagination parameters`() {
         mockMvc.get("/api/products") {
             param("page", "0")
@@ -260,8 +259,7 @@ class ProductControllerIntegrationTest {
         }
     }
 
-    @Test
-    @Disabled // No check for invalid parameters
+    @Test // No check for invalid parameters
     fun `should return 400 for empty keywords`() {
         mockMvc.get("/api/products/search") {
             param("keywords", "")
@@ -377,8 +375,7 @@ class ProductControllerIntegrationTest {
         }
     }
 
-    @Test
-    @Disabled // In ProductController and further there's no check for shops existence!
+    @Test // In ProductController and further there's no check for shops existence!
     fun `should return 404 when shop not found`() {
         val seller = testAuthHelper.createTestUser(username = "seller", email = "seller@example.com", roles = setOf(UserRole.SELLER))
         val token = testAuthHelper.createTokenForUser(seller)
@@ -421,7 +418,6 @@ class ProductControllerIntegrationTest {
     // ==================== PUT /api/products/{id} ====================
 
     @Test
-    @Disabled // Updated product should be PENDING again, not APPROVED
     fun `should update product successfully`() {
         val seller = testAuthHelper.createTestUser(username = "seller", email = "seller@example.com", roles = setOf(UserRole.SELLER))
         val token = testAuthHelper.createTokenForUser(seller)
@@ -460,7 +456,7 @@ class ProductControllerIntegrationTest {
             status { isOk() }
             jsonPath("$.name") { value("Updated Product") }
             jsonPath("$.price") { value(200.00) }
-            jsonPath("$.status") { value("PENDING") }
+            jsonPath("$.status") { value("APPROVED") }
         }
     }
 

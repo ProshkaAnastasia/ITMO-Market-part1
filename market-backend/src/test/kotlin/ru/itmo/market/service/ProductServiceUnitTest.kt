@@ -17,6 +17,8 @@ import ru.itmo.market.repository.CommentRepository
 import ru.itmo.market.repository.ProductRepository
 import org.springframework.data.domain.PageImpl
 import org.springframework.data.domain.PageRequest
+import ru.itmo.market.model.entity.Shop
+import ru.itmo.market.repository.ShopRepository
 import java.time.LocalDateTime
 import java.util.*
 import java.math.BigDecimal
@@ -26,7 +28,10 @@ class ProductServiceUnitTest {
 
     @Mock
     private lateinit var productRepository: ProductRepository
-    
+
+    @Mock
+    private lateinit var shopRepository: ShopRepository
+
     @Mock
     private lateinit var commentRepository: CommentRepository
 
@@ -36,6 +41,7 @@ class ProductServiceUnitTest {
     fun setUp() {
         productService = ProductService(
             productRepository,
+            shopRepository,
             commentRepository
         )
     }
@@ -99,6 +105,16 @@ class ProductServiceUnitTest {
         val shopId = 1L
         val sellerId = 1L
 
+        val shop = Shop(
+            name = "Test Shop",
+            description = "Shop Desc",
+            avatarUrl = "http://example.url.png",
+            sellerId = sellerId
+        )
+
+        whenever(shopRepository.findById(any()))
+            .thenReturn(Optional.of(shop))
+
         // ✅ ДЕЙСТВИТЕЛЬНО ИСПРАВЛЕНО: argumentCaptor для захвата аргумента
         val productCaptor = argumentCaptor<Product>()
         whenever(productRepository.save(productCaptor.capture())).thenAnswer { invocation ->
@@ -131,6 +147,16 @@ class ProductServiceUnitTest {
         val price = BigDecimal("99.99")
         val shopId = 1L
         val sellerId = 1L
+
+        val shop = Shop(
+            name = "Test Shop",
+            description = "Shop Desc",
+            avatarUrl = null,
+            sellerId = sellerId
+        )
+
+        whenever(shopRepository.findById(any()))
+         .thenReturn(Optional.of(shop))
 
         // ✅ ИСПРАВЛЕНО: Используйте argumentCaptor + thenAnswer
         val productCaptor = argumentCaptor<Product>()
