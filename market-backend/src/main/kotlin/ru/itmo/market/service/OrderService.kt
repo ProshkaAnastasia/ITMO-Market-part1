@@ -88,16 +88,22 @@ class OrderService(
 
     @Transactional
     fun updateCartItemQuantity(userId: Long, itemId: Long, quantity: Int): OrderResponse {
-        // Wrong logic: find active cart by user id -> find item in cart
-        val item = orderItemRepository.findById(itemId)
-            .orElseThrow { ResourceNotFoundException("OrderItem с ID $itemId не найден") }
+        val cart = orderRepository.findByUserIdAndStatus(userId, OrderStatus.CART)
+            .orElseThrow { ResourceNotFoundException("No items in cart") }
 
-        val cart = orderRepository.findById(item.orderId)
-            .orElseThrow { ResourceNotFoundException("Order не найден") }
+        val item = orderItemRepository.findByOrderIdAndProductId(cart.id, itemId)
+            .orElseThrow { ResourceNotFoundException("No such item in cart") }
 
-        if (cart.userId != userId) {
-            throw BadRequestException("Этот товар не в вашей корзине")
-        }
+
+//        val item = orderItemRepository.findById(itemId)
+//            .orElseThrow { ResourceNotFoundException("OrderItem с ID $itemId не найден") }
+//
+//        val cart = orderRepository.findById(item.orderId)
+//            .orElseThrow { ResourceNotFoundException("Order не найден") }
+//
+//        if (cart.userId != userId) {
+//            throw BadRequestException("Этот товар не в вашей корзине")
+//        }
 
         if (quantity <= 0) {
             orderItemRepository.deleteById(itemId)
@@ -119,16 +125,11 @@ class OrderService(
 
     @Transactional
     fun removeFromCart(userId: Long, itemId: Long): OrderResponse {
-        // Wrong logic: find active cart by user id -> find item in cart
-        val item = orderItemRepository.findById(itemId)
-            .orElseThrow { ResourceNotFoundException("OrderItem с ID $itemId не найден") }
+        val cart = orderRepository.findByUserIdAndStatus(userId, OrderStatus.CART)
+            .orElseThrow { ResourceNotFoundException("No items in cart") }
 
-        val cart = orderRepository.findById(item.orderId)
-            .orElseThrow { ResourceNotFoundException("Order не найден") }
-
-        if (cart.userId != userId) {
-            throw BadRequestException("Этот товар не в вашей корзине")
-        }
+        val item = orderItemRepository.findByOrderIdAndProductId(cart.id, itemId)
+            .orElseThrow { ResourceNotFoundException("No such item in cart") }
 
         orderItemRepository.deleteById(itemId)
 
