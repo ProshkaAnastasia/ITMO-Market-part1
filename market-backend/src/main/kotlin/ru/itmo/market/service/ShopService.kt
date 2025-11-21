@@ -84,6 +84,9 @@ class ShopService(
             throw ConflictException("Вы уже создали магазин. Один продавец может иметь только один магазин")
         }
 
+        if (name.isBlank()) {
+            throw IllegalArgumentException("Название магазина не может быть пустым")
+        }
         val shop = Shop(
             name = name,
             description = description,
