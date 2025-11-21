@@ -66,7 +66,6 @@ class ShopControllerIntegrationTest {
     }
 
     @Test
-    @Disabled // No reject on invalid params
     @DisplayName("should reject invalid pagination parameters")
     fun testGetShopsWithInvalidPagination() {
         mockMvc.get("/api/shops") {
