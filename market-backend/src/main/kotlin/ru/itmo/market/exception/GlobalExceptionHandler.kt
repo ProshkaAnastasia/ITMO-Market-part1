@@ -1,21 +1,63 @@
 package ru.itmo.market.exception
 
 
+import jakarta.validation.ConstraintViolationException
 import org.slf4j.LoggerFactory
+import org.springframework.context.MessageSourceResolvable
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.MethodArgumentNotValidException
 import org.springframework.web.bind.annotation.ControllerAdvice
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.context.request.WebRequest
+import org.springframework.web.method.annotation.HandlerMethodValidationException
 import ru.itmo.market.model.dto.response.ErrorResponse
 import java.time.LocalDateTime
+import java.util.stream.Collectors
 
 
 @ControllerAdvice
 class GlobalExceptionHandler {
 
     private val logger = LoggerFactory.getLogger(this::class.java)
+
+    @ExceptionHandler(ConstraintViolationException::class)
+    fun handleConstraintViolation(ex: ConstraintViolationException): ResponseEntity<ErrorResponse> {
+        val message = ex.constraintViolations
+            .joinToString(", ") { it.message }
+
+        return ResponseEntity
+            .status(HttpStatus.BAD_REQUEST)
+            .body(ErrorResponse(message))
+    }
+
+    @ExceptionHandler(HandlerMethodValidationException::class)
+    fun handleValidationException(
+        ex: HandlerMethodValidationException,
+        request: WebRequest
+    ): ResponseEntity<ErrorResponse> {
+
+        val errors = ex.allErrors.map { error ->
+            error.defaultMessage ?: "Validation error"
+        }
+
+        val errorMessage = formatErrors(errors)
+        logger.warn("Validation error [{}]:{}",
+            request.getDescription(false).replace("uri=", ""),
+            errorMessage
+        )
+
+        return ResponseEntity(
+            ErrorResponse(
+                message = "Validation failed",
+                errors = errors,
+                timestamp = LocalDateTime.now(),
+                path = request.getDescription(false).replace("uri=", ""),
+                status = HttpStatus.BAD_REQUEST.value()
+            ),
+            HttpStatus.BAD_REQUEST
+        )
+    }
 
 
     @ExceptionHandler(MethodArgumentNotValidException::class)

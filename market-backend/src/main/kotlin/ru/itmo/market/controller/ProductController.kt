@@ -10,6 +10,9 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses
 import io.swagger.v3.oas.annotations.security.SecurityRequirement
 import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.validation.Valid
+import jakarta.validation.constraints.Max
+import jakarta.validation.constraints.Min
+import jakarta.validation.constraints.NotBlank
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.Authentication
@@ -52,9 +55,12 @@ class ProductController(
     fun getProducts(
         @RequestParam(defaultValue = "1")
         @Parameter(description = "Номер страницы (начиная с 1)", example = "1")
+        @Min(1, message = "Страницы начинаются с 1")
         page: Int,
         @RequestParam(defaultValue = "20")
         @Parameter(description = "Количество товаров на странице", example = "20")
+        @Min(1, message = "Размер страницы минимум 1")
+        @Max(50, message = "Размер страницы максимум 50")
         pageSize: Int
     ): ResponseEntity<PaginatedResponse<ProductResponse>> {
         val response = productService.getApprovedProducts(page, pageSize)
@@ -90,9 +96,12 @@ class ProductController(
     fun getProductsInfinite(
         @RequestParam(defaultValue = "1")
         @Parameter(description = "Номер страницы (начиная с 1)", example = "1")
+        @Min(1, message = "Страницы начинаются с 1")
         page: Int,
         @RequestParam(defaultValue = "20")
         @Parameter(description = "Количество товаров на странице", example = "20")
+        @Min(1, message = "Размер страницы минимум 1")
+        @Max(50, message = "Размер страницы максимум 50")
         pageSize: Int
     ): ResponseEntity<InfiniteScrollResponse<ProductResponse>> {
         return ResponseEntity.ok(productService.getApprovedProductsInfinite(page, pageSize))
@@ -124,12 +133,16 @@ class ProductController(
     fun searchProducts(
         @RequestParam
         @Parameter(description = "Ключевые слова для поиска", example = "ноутбук")
+        @NotBlank(message = "Ключевые слова для поиска должны быть не пустые")
         keywords: String,
         @RequestParam(defaultValue = "1")
         @Parameter(description = "Номер страницы (начиная с 1)", example = "1")
+        @Min(1, message = "Страницы начинаются с 1")
         page: Int,
         @RequestParam(defaultValue = "20")
         @Parameter(description = "Количество товаров на странице", example = "20")
+        @Min(1, message = "Размер страницы минимум 1")
+        @Max(50, message = "Размер страницы максимум 50")
         pageSize: Int
     ): ResponseEntity<PaginatedResponse<ProductResponse>> {
         return ResponseEntity.ok(productService.searchProducts(keywords, page, pageSize))
@@ -189,6 +202,10 @@ class ProductController(
                 description = "UnauthorizedException: не авторизован"
             ),
             ApiResponse(
+                responseCode = "403",
+                description = "ForbiddenException: только владелец может добавлять товары"
+            ),
+            ApiResponse(
                 responseCode = "404",
                 description = "ResourceNotFoundException: магазин не найден"
             ),
@@ -203,6 +220,7 @@ class ProductController(
         @Valid @RequestBody request: CreateProductRequest
     ): ResponseEntity<ProductResponse> {
         val userId = authentication.principal as Long
+
         val response = productService.createProduct(
             name = request.name,
             description = request.description,
