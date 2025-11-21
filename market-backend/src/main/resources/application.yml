@@ -65,16 +65,11 @@ jwt:
 
 logging:
   level:
-    root: DEBUG           # ← Все DEBUG
-    ru.itmo.market: DEBUG
-    org.springframework: DEBUG
-    org.springframework.boot: DEBUG
-    org.springframework.security: DEBUG
-    org.springframework.web: DEBUG
-    org.springframework.data: DEBUG
-    org.hibernate: DEBUG  # ← Все Hibernate DEBUG
+    root: WARN          # ← Все DEBUG
+    ru.itmo.market: INFO
+    org.springframework.security: WARN
+    org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping: WARN
     org.hibernate.SQL: DEBUG
-    org.hibernate.type.descriptor.sql: TRACE
   pattern:
     console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
 
