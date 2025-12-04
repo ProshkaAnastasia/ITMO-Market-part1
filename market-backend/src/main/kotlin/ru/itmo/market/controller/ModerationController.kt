@@ -149,7 +149,7 @@ class ModerationController(
         @Min(1, message = "productId должен быть больше 0")
         id: Long
     ): ResponseEntity<ProductResponse> {
-        return ResponseEntity.ok(moderationService.approvProduct(id, userId))
+        return ResponseEntity.ok(moderationService.approveProduct(id, userId))
     }
 
     @PostMapping("/products/{id}/reject")

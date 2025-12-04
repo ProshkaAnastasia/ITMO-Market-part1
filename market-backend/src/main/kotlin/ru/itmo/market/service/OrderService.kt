@@ -7,20 +7,19 @@ import ru.itmo.market.exception.BadRequestException
 import ru.itmo.market.exception.ResourceNotFoundException
 import ru.itmo.market.model.dto.response.OrderResponse
 import ru.itmo.market.model.dto.response.OrderItemResponse
-import ru.itmo.market.model.dto.response.ProductResponse
 import ru.itmo.market.model.dto.response.PaginatedResponse
 import ru.itmo.market.model.entity.Order
 import ru.itmo.market.model.entity.OrderItem
 import ru.itmo.market.model.enums.OrderStatus
-import ru.itmo.market.repository.*
+import ru.itmo.market.repository.OrderRepository
+import ru.itmo.market.repository.OrderItemRepository
 import java.math.BigDecimal
 
 @Service
 class OrderService(
     private val orderRepository: OrderRepository,
     private val orderItemRepository: OrderItemRepository,
-    private val productRepository: ProductRepository,
-    private val commentRepository: CommentRepository
+    private val productService: ProductService
 ) {
 
     fun getCart(userId: Long): OrderResponse {
@@ -36,14 +35,8 @@ class OrderService(
         return cart.toResponse()
     }
 
-    /**
-     * ТРАНЗАКЦИЯ №1: добавить товар в корзину
-     * Обоснование: атомарность. Если товар не существует, корзина не должна измениться.
-     * Все изменения должны быть выполнены или откатаны вместе.
-     */
     @Transactional
     fun addToCart(userId: Long, productId: Long, quantity: Int): OrderResponse {
-        // 1. Получить или создать корзину (CART)
         val cart = orderRepository.findByUserIdAndStatus(userId, OrderStatus.CART)
             .orElseGet {
                 val newCart = Order(
@@ -54,11 +47,9 @@ class OrderService(
                 orderRepository.save(newCart)
             }
 
-        // 2. Проверить существование товара
-        val product = productRepository.findById(productId)
-            .orElseThrow { ResourceNotFoundException("Товар с ID $productId не найден") }
+        // Decoupled: Get product details from ProductService
+        val product = productService.getProductById(productId)
 
-        // 3. Добавить/обновить OrderItem
         val existingItem = orderItemRepository.findByOrderIdAndProductId(cart.id, productId)
         
         if (existingItem.isPresent) {
@@ -75,7 +66,6 @@ class OrderService(
             orderItemRepository.save(newItem)
         }
 
-        // 4. Пересчитать totalPrice
         val items = orderItemRepository.findAllByOrderId(cart.id)
         val newTotalPrice = items.fold(BigDecimal.ZERO) { acc, item ->
             acc + item.price.multiply(BigDecimal(item.quantity))
@@ -94,17 +84,6 @@ class OrderService(
         val item = orderItemRepository.findByOrderIdAndProductId(cart.id, itemId)
             .orElseThrow { ResourceNotFoundException("No such item in cart") }
 
-
-//        val item = orderItemRepository.findById(itemId)
-//            .orElseThrow { ResourceNotFoundException("OrderItem с ID $itemId не найден") }
-//
-//        val cart = orderRepository.findById(item.orderId)
-//            .orElseThrow { ResourceNotFoundException("Order не найден") }
-//
-//        if (cart.userId != userId) {
-//            throw BadRequestException("Этот товар не в вашей корзине")
-//        }
-
         if (quantity <= 0) {
             orderItemRepository.deleteById(itemId)
         } else {
@@ -112,7 +91,6 @@ class OrderService(
             orderItemRepository.save(updatedItem)
         }
 
-        // Пересчитать totalPrice
         val items = orderItemRepository.findAllByOrderId(cart.id)
         val newTotalPrice = items.fold(BigDecimal.ZERO) { acc, item ->
             acc + item.price.multiply(BigDecimal(item.quantity))
@@ -133,7 +111,6 @@ class OrderService(
 
         orderItemRepository.deleteById(itemId)
 
-        // Пересчитать totalPrice
         val items = orderItemRepository.findAllByOrderId(cart.id)
         val newTotalPrice = items.fold(BigDecimal.ZERO) { acc, item ->
             acc + item.price.multiply(BigDecimal(item.quantity))
@@ -154,31 +131,22 @@ class OrderService(
         orderRepository.save(updatedCart)
     }
 
-    /**
-     * ТРАНЗАКЦИЯ №2: создать заказ
-     * Обоснование: атомарность оформления. Недопустима ситуация когда заказ создан,
-     * но корзина не очищена, или наоборот.
-     */
     @Transactional
     fun createOrder(userId: Long, deliveryAddress: String): OrderResponse {
-        // 1. Найти текущую корзину (CART)
         val cart = orderRepository.findByUserIdAndStatus(userId, OrderStatus.CART)
             .orElseThrow { BadRequestException("Корзина не найдена") }
 
-        // 2. Проверить что корзина не пуста
         val items = orderItemRepository.findAllByOrderId(cart.id)
         if (items.isEmpty()) {
             throw BadRequestException("Корзина пуста. Добавьте товары перед оформлением заказа")
         }
 
-        // 3. Изменить статус на PENDING
         val pendingOrder = cart.copy(
             status = OrderStatus.PENDING,
             deliveryAddress = deliveryAddress
         )
         val savedOrder = orderRepository.save(pendingOrder)
 
-        // 4. Создать новую корзину (CART) для пользователя
         val newCart = Order(
             userId = userId,
             status = OrderStatus.CART,
@@ -210,28 +178,11 @@ class OrderService(
     private fun Order.toResponse(): OrderResponse {
         val items = orderItemRepository.findAllByOrderId(this.id)
         val itemResponses = items.map { item ->
-            val product = productRepository.findById(item.productId)
-                .orElseThrow { ResourceNotFoundException("Товар с ID ${item.productId} не найден") }
-            val avgRating = commentRepository.getAverageRatingByProductId(product.id)
-            val commentCount = commentRepository.getCommentCountByProductId(product.id)
+            val productDto = productService.getProductById(item.productId)
             
             OrderItemResponse(
                 id = item.id,
-                product = ProductResponse(
-                    id = product.id,
-                    name = product.name,
-                    description = product.description,
-                    price = product.price,
-                    imageUrl = product.imageUrl,
-                    shopId = product.shopId,
-                    sellerId = product.sellerId,
-                    status = product.status.name,
-                    rejectionReason = product.rejectionReason,
-                    averageRating = avgRating,
-                    commentsCount = commentCount,
-                    createdAt = product.createdAt,
-                    updatedAt = product.updatedAt
-                ),
+                product = productDto,
                 quantity = item.quantity,
                 price = item.price,
                 subtotal = item.price.multiply(BigDecimal(item.quantity)),

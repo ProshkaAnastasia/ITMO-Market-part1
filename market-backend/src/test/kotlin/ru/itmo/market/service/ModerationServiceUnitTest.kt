@@ -15,7 +15,6 @@ import ru.itmo.market.model.entity.Product
 import ru.itmo.market.model.enums.ProductStatus
 import ru.itmo.market.repository.CommentRepository
 import ru.itmo.market.repository.ProductRepository
-import ru.itmo.market.model.dto.response.ProductResponse // Assuming this is the public DTO from imports
 import java.math.BigDecimal
 import java.time.LocalDateTime
 import java.util.*
@@ -64,7 +63,7 @@ class ModerationServiceUnitTest {
             it.arguments[0] as Product // Simulate save returning the object
         }
 
-        val result = moderationService.approvProduct(PRODUCT_ID, MODERATOR_ID)
+        val result = moderationService.approveProduct(PRODUCT_ID, MODERATOR_ID)
 
         // Assert Response
         assertEquals(ProductStatus.APPROVED.name, result.status)
@@ -84,7 +83,7 @@ class ModerationServiceUnitTest {
             .thenReturn(Optional.empty())
 
         assertThrows<ResourceNotFoundException> {
-            moderationService.approvProduct(PRODUCT_ID, MODERATOR_ID)
+            moderationService.approveProduct(PRODUCT_ID, MODERATOR_ID)
         }
 
         verify(productRepository, never()).save(any())
@@ -98,7 +97,7 @@ class ModerationServiceUnitTest {
             .thenReturn(Optional.of(approvedProduct))
 
         val ex = assertThrows<IllegalStateException> {
-            moderationService.approvProduct(PRODUCT_ID, MODERATOR_ID)
+            moderationService.approveProduct(PRODUCT_ID, MODERATOR_ID)
         }
         
         assertEquals("Может быть одобрен только товар со статусом PENDING", ex.message)
