@@ -7,19 +7,14 @@ import org.junit.jupiter.api.DisplayName
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
 import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.http.MediaType
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.get
-import org.springframework.test.web.servlet.post
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
 import org.testcontainers.containers.PostgreSQLContainer
 import ru.itmo.market.repository.*
-import ru.itmo.market.model.dto.request.RejectProductRequest
-import ru.itmo.market.model.entity.User
 import ru.itmo.market.model.enums.UserRole
-import ru.itmo.market.security.jwt.JwtTokenProvider
 
 @SpringBootTest
 @AutoConfigureMockMvc

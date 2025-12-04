@@ -35,10 +35,4 @@ class SecurityConfig {
             registerCorsConfiguration("/**", configuration)
         }
     }
-
-    @Bean
-    fun jwtSecretKey(): SecretKey {
-        val secret = System.getenv("JWT_SECRET") ?: "your-super-secret-key-change-in-production-min-256-bits-example-here-1234567890"
-        return Keys.hmacShaKeyFor(secret.toByteArray())
-    }
 }

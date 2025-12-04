@@ -10,17 +10,11 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses
 import io.swagger.v3.oas.annotations.security.SecurityRequirement
 import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.validation.Valid
-import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.Authentication
 import org.springframework.web.bind.annotation.*
-import ru.itmo.market.model.dto.request.LoginRequest
-import ru.itmo.market.model.dto.request.RegisterRequest
-import ru.itmo.market.model.dto.request.RefreshTokenRequest
 import ru.itmo.market.model.dto.request.UpdateProfileRequest
-import ru.itmo.market.model.dto.response.TokenResponse
 import ru.itmo.market.model.dto.response.UserResponse
-import ru.itmo.market.service.AuthService
 import ru.itmo.market.service.UserService
 import ru.itmo.market.exception.ForbiddenException
 
