@@ -2,13 +2,15 @@ package ru.itmo.market.service
 
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import ru.itmo.market.exception.ForbiddenException
 import ru.itmo.market.model.dto.response.ProductResponse
 import ru.itmo.market.model.dto.response.PaginatedResponse
 
 @Service
 class ModerationService(
     private val productService: ProductService,
-    private val commentService: CommentService
+    private val commentService: CommentService,
+    private val userService: UserService
 ) {
 
     @Transactional
@@ -21,11 +23,19 @@ class ModerationService(
         return productService.rejectProduct(productId, moderatorId, reason)
     }
 
-    fun getPendingProducts(page: Int, pageSize: Int): PaginatedResponse<ProductResponse> {
+    fun getPendingProducts(moderatorId: Long, page: Int, pageSize: Int): PaginatedResponse<ProductResponse> {
+        val moderator = userService.getUserById(moderatorId)
+        if (!moderator.roles.contains("MODERATOR") && !moderator.roles.contains("ADMIN")) {
+            throw ForbiddenException("Только модераторы и администраторы могут получать товары на модерации.")
+        }
         return productService.getPendingProducts(page, pageSize)
     }
 
-    fun getPendingProductById(productId: Long): ProductResponse {
+    fun getPendingProductById(moderatorId: Long, productId: Long): ProductResponse {
+        val moderator = userService.getUserById(moderatorId)
+        if (!moderator.roles.contains("MODERATOR") && !moderator.roles.contains("ADMIN")) {
+            throw ForbiddenException("Только модераторы и администраторы могут получать товары на модерации.")
+        }
         return productService.getPendingProductById(productId)
     }
 }

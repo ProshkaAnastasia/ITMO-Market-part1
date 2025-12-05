@@ -63,7 +63,7 @@ class ModerationController(
         @Min(1, message = "pageSize должен быть больше 0")
         pageSize: Int
     ): ResponseEntity<PaginatedResponse<ProductResponse>> {
-        return ResponseEntity.ok(moderationService.getPendingProducts(page, pageSize))
+        return ResponseEntity.ok(moderationService.getPendingProducts(userId, page, pageSize))
     }
 
     @GetMapping("/products/{id}")
@@ -106,7 +106,7 @@ class ModerationController(
         @Min(1, message = "productId должен быть больше 0")
         id: Long
     ): ResponseEntity<ProductResponse> {
-        return ResponseEntity.ok(moderationService.getPendingProductById(id))
+        return ResponseEntity.ok(moderationService.getPendingProductById(userId, id))
     }
 
     @PostMapping("/products/{id}/approve")

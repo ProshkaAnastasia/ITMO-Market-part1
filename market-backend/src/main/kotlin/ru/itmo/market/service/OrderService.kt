@@ -85,7 +85,7 @@ class OrderService(
             .orElseThrow { ResourceNotFoundException("No such item in cart") }
 
         if (quantity <= 0) {
-            orderItemRepository.deleteById(itemId)
+            orderItemRepository.deleteById(item.id)
         } else {
             val updatedItem = item.copy(quantity = quantity)
             orderItemRepository.save(updatedItem)
