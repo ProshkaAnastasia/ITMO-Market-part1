@@ -8,218 +8,180 @@ import org.junit.jupiter.api.extension.ExtendWith
 import org.mockito.Mock
 import org.mockito.junit.jupiter.MockitoExtension
 import org.mockito.kotlin.*
+import ru.itmo.market.exception.BadRequestException
 import ru.itmo.market.exception.ResourceNotFoundException
+import ru.itmo.market.model.dto.response.ProductResponse
 import ru.itmo.market.model.entity.Order
 import ru.itmo.market.model.entity.OrderItem
-import ru.itmo.market.model.entity.Product
 import ru.itmo.market.model.enums.OrderStatus
 import ru.itmo.market.model.enums.ProductStatus
-import ru.itmo.market.repository.OrderRepository
 import ru.itmo.market.repository.OrderItemRepository
-import ru.itmo.market.repository.ProductRepository
-import ru.itmo.market.repository.CommentRepository
+import ru.itmo.market.repository.OrderRepository
+import java.math.BigDecimal
 import java.time.LocalDateTime
 import java.util.*
-import java.math.BigDecimal
 
 @ExtendWith(MockitoExtension::class)
 class OrderServiceUnitTest {
 
     @Mock
     private lateinit var orderRepository: OrderRepository
-    
+
     @Mock
     private lateinit var orderItemRepository: OrderItemRepository
-    
+
     @Mock
-    private lateinit var productRepository: ProductRepository
-    
-    @Mock
-    private lateinit var commentRepository: CommentRepository
+    private lateinit var productService: ProductService
 
     private lateinit var orderService: OrderService
+
+    private val USER_ID = 1L
+    private val PRODUCT_ID = 100L
 
     @BeforeEach
     fun setUp() {
         orderService = OrderService(
             orderRepository,
             orderItemRepository,
-            productRepository,
-            commentRepository
+            productService
         )
     }
 
-    @Test
-    fun `should add item to cart successfully`() {
-        val userId = 1L
-        val productId = 100L
-        val quantity = 2
-
-        val cart = Order(
-            id = 1L,
-            userId = userId,
-            status = OrderStatus.PENDING,
-            createdAt = LocalDateTime.now(),
-            updatedAt = LocalDateTime.now()
-        )
-        
-        whenever(orderRepository.findByUserIdAndStatus(eq(userId), any()))
-            .thenReturn(Optional.of(cart))
-
-        val product = Product(
+    // Helper для создания DTO продукта (так как OrderService работает с DTO)
+    private fun createProductResponse(productId: Long, price: BigDecimal): ProductResponse {
+        return ProductResponse(
             id = productId,
             name = "Test Product",
-            description = "Test Description",
-            price = BigDecimal("99.99"),
+            description = "Desc",
+            price = price,
+            imageUrl = null,
             shopId = 1L,
-            sellerId = 1L,
-            status = ProductStatus.APPROVED,
+            sellerId = 2L,
+            status = ProductStatus.APPROVED.name,
+            rejectionReason = null,
+            averageRating = null,
+            commentsCount = null,
             createdAt = LocalDateTime.now(),
             updatedAt = LocalDateTime.now()
         )
-        
-        whenever(productRepository.findById(eq(productId)))
-            .thenReturn(Optional.of(product))
-
-        whenever(orderItemRepository.findByOrderIdAndProductId(eq(cart.id), eq(productId)))
-            .thenReturn(Optional.empty())
-
-        val orderItem = OrderItem(
-            id = 1L,
-            orderId = cart.id,
-            productId = productId,
-            quantity = quantity,
-            price = product.price
-        )
-        
-        val orderItemCaptor = argumentCaptor<OrderItem>()
-        whenever(orderItemRepository.save(orderItemCaptor.capture())).thenAnswer { invocation ->
-            val item = invocation.arguments[0] as OrderItem
-            item.copy(id = 1L)
-        }
-        
-        whenever(orderItemRepository.findAllByOrderId(eq(cart.id)))
-            .thenReturn(listOf(orderItem))
-        
-        val orderCaptor = argumentCaptor<Order>()
-        whenever(orderRepository.save(orderCaptor.capture())).thenAnswer { invocation ->
-            val order = invocation.arguments[0] as Order
-            order.copy(id = cart.id)
-        }
-
-        val result = orderService.addToCart(userId, productId, quantity)
-
-        assertNotNull(result)
-        assertEquals(userId, result.userId)
-        verify(orderItemRepository, times(1)).save(any())
-        verify(orderRepository, times(1)).save(any())
     }
 
     @Test
-    fun `should add quantity to existing cart item`() {
-        val userId = 1L
-        val productId = 100L
+    fun `addToCart should add new item and recalculate total`() {
         val quantity = 2
-
-        val cart = Order(
-            id = 1L,
-            userId = userId,
-            status = OrderStatus.PENDING,
-            createdAt = LocalDateTime.now(),
-            updatedAt = LocalDateTime.now()
-        )
+        val price = BigDecimal("50.00")
         
-        whenever(orderRepository.findByUserIdAndStatus(eq(userId), any()))
+        // 1. Mock Cart
+        val cart = Order(id = 1L, userId = USER_ID, status = OrderStatus.CART, totalPrice = BigDecimal.ZERO)
+        whenever(orderRepository.findByUserIdAndStatus(eq(USER_ID), eq(OrderStatus.CART)))
             .thenReturn(Optional.of(cart))
 
-        val product = Product(
-            id = productId,
-            name = "Test Product",
-            description = "Test Description",
-            price = BigDecimal("99.99"),
-            shopId = 1L,
-            sellerId = 1L,
-            status = ProductStatus.APPROVED,
-            createdAt = LocalDateTime.now(),
-            updatedAt = LocalDateTime.now()
-        )
-        
-        whenever(productRepository.findById(eq(productId)))
-            .thenReturn(Optional.of(product))
+        // 2. Mock ProductService (возвращает DTO)
+        val productDto = createProductResponse(PRODUCT_ID, price)
+        whenever(productService.getProductById(eq(PRODUCT_ID))).thenReturn(productDto)
 
-        val existingOrderItem = OrderItem(
-            id = 1L,
-            orderId = cart.id,
-            productId = productId,
-            quantity = 1,
-            price = product.price
-        )
-        
-        whenever(orderItemRepository.findByOrderIdAndProductId(eq(cart.id), eq(productId)))
-            .thenReturn(Optional.of(existingOrderItem))
+        // 3. Mock OrderItem lookup (пусто, т.к. товар новый)
+        whenever(orderItemRepository.findByOrderIdAndProductId(eq(cart.id), eq(PRODUCT_ID)))
+            .thenReturn(Optional.empty())
 
-        val orderItemCaptor = argumentCaptor<OrderItem>()
-        whenever(orderItemRepository.save(orderItemCaptor.capture())).thenAnswer { invocation ->
-            val item = invocation.arguments[0] as OrderItem
-            item.copy(id = 1L, quantity = 3)
-        }
-        
-        whenever(orderItemRepository.findAllByOrderId(eq(cart.id)))
-            .thenReturn(listOf(existingOrderItem.copy(quantity = 3)))
-        
-        val orderCaptor = argumentCaptor<Order>()
-        whenever(orderRepository.save(orderCaptor.capture())).thenAnswer { invocation ->
-            val order = invocation.arguments[0] as Order
-            order.copy(id = cart.id)
+        // 4. Mock OrderItem saving
+        whenever(orderItemRepository.save(any<OrderItem>())).thenAnswer { 
+            (it.arguments[0] as OrderItem).copy(id = 10L) 
         }
 
-        val result = orderService.addToCart(userId, productId, quantity)
+        // 5. Mock recalculation (возвращаем список товаров для пересчета)
+        val newItem = OrderItem(orderId = cart.id, productId = PRODUCT_ID, quantity = quantity, price = price)
+        whenever(orderItemRepository.findAllByOrderId(eq(cart.id))).thenReturn(listOf(newItem))
 
-        assertNotNull(result)
-        verify(orderItemRepository, times(1)).save(any())
+        // 6. Mock Cart saving
+        whenever(orderRepository.save(any<Order>())).thenAnswer { it.arguments[0] as Order }
+
+        // Act
+        val result = orderService.addToCart(USER_ID, PRODUCT_ID, quantity)
+
+        // Assert
+        assertEquals(BigDecimal("100.00"), result.totalPrice) // 50 * 2
+        verify(productService, atLeastOnce()).getProductById(PRODUCT_ID)
+        verify(orderItemRepository).save(argThat<OrderItem> { 
+            productId == PRODUCT_ID && quantity == 2 
+        })
     }
 
     @Test
-    fun `should throw exception when product not found`() {
-        val userId = 1L
-        val productId = 999L
-        val quantity = 2
-
-        val cart = Order(
-            id = 1L,
-            userId = userId,
-            status = OrderStatus.PENDING,
-            createdAt = LocalDateTime.now(),
-            updatedAt = LocalDateTime.now()
-        )
+    fun `addToCart should increment quantity for existing item`() {
+        val quantityToAdd = 1
+        val price = BigDecimal("50.00")
         
-        whenever(orderRepository.findByUserIdAndStatus(eq(userId), any()))
-            .thenReturn(Optional.of(cart))
+        val cart = Order(id = 1L, userId = USER_ID, status = OrderStatus.CART)
+        whenever(orderRepository.findByUserIdAndStatus(USER_ID, OrderStatus.CART)).thenReturn(Optional.of(cart))
+        
+        // ProductService нужен для получения цены, даже если item существует (в вашей логике)
+        val productDto = createProductResponse(PRODUCT_ID, price)
+        whenever(productService.getProductById(PRODUCT_ID)).thenReturn(productDto)
 
-        whenever(productRepository.findById(eq(productId)))
-            .thenReturn(Optional.empty())
+        // Существующий item
+        val existingItem = OrderItem(id = 10L, orderId = cart.id, productId = PRODUCT_ID, quantity = 1, price = price)
+        whenever(orderItemRepository.findByOrderIdAndProductId(cart.id, PRODUCT_ID))
+            .thenReturn(Optional.of(existingItem))
 
-        assertThrows<ResourceNotFoundException> {
-            orderService.addToCart(userId, productId, quantity)
-        }
+        // Recalculation logic
+        val updatedItem = existingItem.copy(quantity = 2)
+        whenever(orderItemRepository.findAllByOrderId(cart.id)).thenReturn(listOf(updatedItem))
+        whenever(orderRepository.save(any<Order>())).thenAnswer { it.arguments[0] as Order }
 
-        verify(orderItemRepository, never()).save(any())
+        // Act
+        val result = orderService.addToCart(USER_ID, PRODUCT_ID, quantityToAdd)
+
+        // Assert
+        assertEquals(BigDecimal("100.00"), result.totalPrice) // 50 * 2
+        verify(orderItemRepository).save(check {
+            assertEquals(2, it.quantity)
+        })
     }
 
     @Test
-    fun `should throw exception when cart not found`() {
-        val userId = 999L
-        val productId = 100L
-        val quantity = 2
+    fun `createOrder should convert cart to pending and create new cart`() {
+        val address = "Main St"
+        val cart = Order(id = 1L, userId = USER_ID, status = OrderStatus.CART, totalPrice = BigDecimal("100.00"))
+        
+        whenever(orderRepository.findByUserIdAndStatus(USER_ID, OrderStatus.CART)).thenReturn(Optional.of(cart))
+        
+        // Корзина не пуста
+        whenever(orderItemRepository.findAllByOrderId(cart.id))
+            .thenReturn(listOf(OrderItem(id=1, orderId=1, productId=PRODUCT_ID, quantity=1, price=BigDecimal("100"))))
 
-        whenever(orderRepository.findByUserIdAndStatus(eq(userId), any()))
-            .thenReturn(Optional.empty())
+        // Сохранение заказа (Pending)
+        whenever(orderRepository.save(argThat<Order> { status == OrderStatus.PENDING }))
+            .thenAnswer { it.arguments[0] as Order }
+            
+        // Product lookup for toResponse mapping
+        val productDto = createProductResponse(PRODUCT_ID, BigDecimal("100.00"))
+        whenever(productService.getProductById(PRODUCT_ID)).thenReturn(productDto)
 
-        assertThrows<ResourceNotFoundException> {
-            orderService.addToCart(userId, productId, quantity)
-        }
+        // Act
+        val result = orderService.createOrder(USER_ID, address)
 
-        verify(orderRepository, times(1)).findByUserIdAndStatus(eq(userId), any())
+        // Assert
+        assertEquals(OrderStatus.PENDING.name, result.status)
+        assertEquals(address, result.deliveryAddress)
+        
+        // Проверяем, что создалась новая корзина
+        verify(orderRepository).save(argThat<Order> { 
+            status == OrderStatus.CART && totalPrice == BigDecimal.ZERO 
+        })
     }
 
+    @Test
+    fun `createOrder should throw exception if cart is empty`() {
+        val cart = Order(id = 1L, userId = USER_ID, status = OrderStatus.CART)
+        whenever(orderRepository.findByUserIdAndStatus(USER_ID, OrderStatus.CART)).thenReturn(Optional.of(cart))
+        whenever(orderItemRepository.findAllByOrderId(cart.id)).thenReturn(emptyList())
+
+        assertThrows<BadRequestException> {
+            orderService.createOrder(USER_ID, "addr")
+        }
+        
+        // Не должен сохранять заказ или создавать новую корзину
+        verify(orderRepository, never()).save(any())
+    }
 }
