@@ -109,7 +109,8 @@ class OrderService(
         val item = orderItemRepository.findByOrderIdAndProductId(cart.id, itemId)
             .orElseThrow { ResourceNotFoundException("No such item in cart") }
 
-        orderItemRepository.deleteById(itemId)
+        orderItemRepository.deleteById(item.id)
+
 
         val items = orderItemRepository.findAllByOrderId(cart.id)
         val newTotalPrice = items.fold(BigDecimal.ZERO) { acc, item ->
