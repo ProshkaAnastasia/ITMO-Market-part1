@@ -1,20 +1,29 @@
 package ru.itmo.market.controller
 
+
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.media.Content
 import io.swagger.v3.oas.annotations.media.Schema
 import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.responses.ApiResponses
+import io.swagger.v3.oas.annotations.security.SecurityRequirement
 import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.validation.Valid
-import jakarta.validation.constraints.Min
+import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
+import org.springframework.security.core.Authentication
 import org.springframework.web.bind.annotation.*
+import ru.itmo.market.model.dto.request.LoginRequest
+import ru.itmo.market.model.dto.request.RegisterRequest
+import ru.itmo.market.model.dto.request.RefreshTokenRequest
 import ru.itmo.market.model.dto.request.UpdateProfileRequest
+import ru.itmo.market.model.dto.response.TokenResponse
 import ru.itmo.market.model.dto.response.UserResponse
+import ru.itmo.market.service.AuthService
 import ru.itmo.market.service.UserService
 import ru.itmo.market.exception.ForbiddenException
+
 
 @RestController
 @RequestMapping("/api/users")
@@ -23,10 +32,12 @@ class UserController(
     private val userService: UserService
 ) {
 
+
     @GetMapping("/me")
     @Operation(
         summary = "Получить информацию о текущем пользователе",
-        description = "Возвращает полную информацию о пользователе"
+        description = "Возвращает полную информацию о авторизованном пользователе",
+        security = [SecurityRequirement(name = "bearer-jwt")]
     )
     @ApiResponses(
         value = [
@@ -36,8 +47,8 @@ class UserController(
                 content = [Content(schema = Schema(implementation = UserResponse::class))]
             ),
             ApiResponse(
-                responseCode = "400",
-                description = "BadRequestException: некорректный userId"
+                responseCode = "401",
+                description = "UnauthorizedException: не авторизован"
             ),
             ApiResponse(
                 responseCode = "404",
@@ -49,19 +60,17 @@ class UserController(
             )
         ]
     )
-    fun getCurrentUser(
-        @RequestParam
-        @Parameter(description = "ID пользователя", example = "1")
-        @Min(1, message = "userId должен быть больше 0")
-        userId: Long
-    ): ResponseEntity<UserResponse> {
+    fun getCurrentUser(authentication: Authentication): ResponseEntity<UserResponse> {
+        val userId = authentication.principal as Long
         return ResponseEntity.ok(userService.getCurrentUser(userId))
     }
 
+
     @PutMapping("/me")
     @Operation(
-        summary = "Обновить профиль пользователя",
-        description = "Редактирует информацию профиля пользователя (email, имя, фамилия). Поля опциональны"
+        summary = "Обновить свой профиль",
+        description = "Редактирует информацию профиля авторизованного пользователя (email, имя, фамилия). Поля опциональны - передавайте только те, которые нужно изменить",
+        security = [SecurityRequirement(name = "bearer-jwt")]
     )
     @ApiResponses(
         value = [
@@ -72,7 +81,11 @@ class UserController(
             ),
             ApiResponse(
                 responseCode = "400",
-                description = "BadRequestException: некорректный userId/некорректный email"
+                description = "BadRequestException: некорректные данные (невалидный email)"
+            ),
+            ApiResponse(
+                responseCode = "401",
+                description = "UnauthorizedException: не авторизован"
             ),
             ApiResponse(
                 responseCode = "404",
@@ -89,21 +102,23 @@ class UserController(
         ]
     )
     fun updateProfile(
-        @RequestParam
-        @Parameter(description = "ID пользователя", example = "1")
-        @Min(1, message = "userId должен быть больше 0")
-        userId: Long,
-        @Valid @RequestBody request: UpdateProfileRequest
+        authentication: Authentication,
+        @Valid
+        @RequestBody
+        request: UpdateProfileRequest
     ): ResponseEntity<UserResponse> {
+        val userId = authentication.principal as Long
         return ResponseEntity.ok(
             userService.updateProfile(userId, request.email, request.firstName, request.lastName)
         )
     }
 
+
     @DeleteMapping("/me")
     @Operation(
         summary = "Удалить свой профиль",
-        description = "Полностью удаляет профиль пользователя. Это действие необратимо"
+        description = "Полностью удаляет профиль авторизованного пользователя. Это действие необратимо",
+        security = [SecurityRequirement(name = "bearer-jwt")]
     )
     @ApiResponses(
         value = [
@@ -112,8 +127,8 @@ class UserController(
                 description = "Профиль успешно удален"
             ),
             ApiResponse(
-                responseCode = "400",
-                description = "BadRequestException: некорректный userId"
+                responseCode = "401",
+                description = "UnauthorizedException: не авторизован"
             ),
             ApiResponse(
                 responseCode = "404",
@@ -125,20 +140,18 @@ class UserController(
             )
         ]
     )
-    fun deleteProfile(
-        @RequestParam
-        @Parameter(description = "ID пользователя", example = "1")
-        @Min(1, message = "userId должен быть больше 0")
-        userId: Long
-    ): ResponseEntity<Unit> {
+    fun deleteProfile(authentication: Authentication): ResponseEntity<Unit> {
+        val userId = authentication.principal as Long
         userService.deleteProfile(userId)
         return ResponseEntity.noContent().build()
     }
 
-    @GetMapping("/{userId}")
+
+    @GetMapping("/{id}")
     @Operation(
-        summary = "Получить информацию о пользователе (администраторский доступ)",
-        description = "Возвращает полную информацию о пользователе. Доступно только администраторам"
+        summary = "Получить информацию о пользователе (только для администраторов)",
+        description = "Возвращает полную информацию о пользователе. Доступно только администраторам",
+        security = [SecurityRequirement(name = "bearer-jwt")]
     )
     @ApiResponses(
         value = [
@@ -148,8 +161,8 @@ class UserController(
                 content = [Content(schema = Schema(implementation = UserResponse::class))]
             ),
             ApiResponse(
-                responseCode = "400",
-                description = "BadRequestException: некорректный adminId/некорректный userId"
+                responseCode = "401",
+                description = "UnauthorizedException: не авторизован"
             ),
             ApiResponse(
                 responseCode = "403",
@@ -166,19 +179,15 @@ class UserController(
         ]
     )
     fun getUserById(
-        @RequestParam
-        @Parameter(description = "ID администратора", example = "1")
-        @Min(1, message = "adminId должен быть больше 0")
-        adminId: Long,
+        authentication: Authentication,
         @PathVariable
         @Parameter(description = "ID пользователя", example = "1")
-        @Min(1, message = "userId должен быть больше 0")
-        userId: Long
+        id: Long
     ): ResponseEntity<UserResponse> {
-        val roles = userService.getUserById(adminId).roles
+        val roles = (authentication.details as? Map<*, *>)?.get("roles") as? Set<*> ?: emptySet<String>()
         if (!roles.contains("ADMIN")) {
             throw ForbiddenException("Only administrators can access user information")
         }
-        return ResponseEntity.ok(userService.getUserById(userId))
+        return ResponseEntity.ok(userService.getUserById(id))
     }
 }

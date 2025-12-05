@@ -1,21 +1,23 @@
 package ru.itmo.market.controller
 
+
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.media.Content
 import io.swagger.v3.oas.annotations.media.Schema
 import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.responses.ApiResponses
+import io.swagger.v3.oas.annotations.security.SecurityRequirement
 import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.validation.Valid
-import jakarta.validation.constraints.Min
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
+import org.springframework.security.core.Authentication
 import org.springframework.web.bind.annotation.*
-import ru.itmo.market.model.dto.request.CreateOrderRequest
-import ru.itmo.market.model.dto.response.OrderResponse
-import ru.itmo.market.model.dto.response.PaginatedResponse
-import ru.itmo.market.service.OrderService
+import ru.itmo.market.model.dto.request.*
+import ru.itmo.market.model.dto.response.*
+import ru.itmo.market.service.*
+
 
 @RestController
 @RequestMapping("/api/orders")
@@ -24,10 +26,12 @@ class OrderController(
     private val orderService: OrderService
 ) {
 
+
     @GetMapping
     @Operation(
         summary = "Получить список заказов пользователя",
-        description = "Возвращает постраничный список всех заказов пользователя. Заказы отсортированы по дате создания (новые сверху)"
+        description = "Возвращает постраничный список всех заказов авторизованного пользователя. Заказы отсортированы по дате создания (новые сверху)",
+        security = [SecurityRequirement(name = "bearer-jwt")]
     )
     @ApiResponses(
         value = [
@@ -38,7 +42,11 @@ class OrderController(
             ),
             ApiResponse(
                 responseCode = "400",
-                description = "BadRequestException: некорректные параметры пагинации или userId"
+                description = "BadRequestException: некорректные параметры пагинации"
+            ),
+            ApiResponse(
+                responseCode = "401",
+                description = "UnauthorizedException: не авторизован"
             ),
             ApiResponse(
                 responseCode = "500",
@@ -47,26 +55,24 @@ class OrderController(
         ]
     )
     fun getUserOrders(
-        @RequestParam
-        @Parameter(description = "ID пользователя", example = "1")
-        @Min(1, message = "userId должен быть больше 0")
-        userId: Long,
+        authentication: Authentication,
         @RequestParam(defaultValue = "1")
         @Parameter(description = "Номер страницы (начиная с 1)", example = "1")
-        @Min(1, message = "page должен быть больше 0")
         page: Int,
         @RequestParam(defaultValue = "20")
         @Parameter(description = "Количество заказов на странице", example = "20")
-        @Min(1, message = "pageSize должен быть больше 0")
         pageSize: Int
     ): ResponseEntity<PaginatedResponse<OrderResponse>> {
+        val userId = authentication.principal as Long
         return ResponseEntity.ok(orderService.getUserOrders(userId, page, pageSize))
     }
+
 
     @GetMapping("/{id}")
     @Operation(
         summary = "Получить детали заказа",
-        description = "Возвращает полную информацию о конкретном заказе. Пользователь может просмотреть только свои заказы"
+        description = "Возвращает полную информацию о конкретном заказе. Пользователь может просмотреть только свои заказы",
+        security = [SecurityRequirement(name = "bearer-jwt")]
     )
     @ApiResponses(
         value = [
@@ -76,8 +82,8 @@ class OrderController(
                 content = [Content(schema = Schema(implementation = OrderResponse::class))]
             ),
             ApiResponse(
-                responseCode = "400",
-                description = "BadRequestException: некорректный orderId/некорректный userId"
+                responseCode = "401",
+                description = "UnauthorizedException: не авторизован"
             ),
             ApiResponse(
                 responseCode = "403",
@@ -94,22 +100,21 @@ class OrderController(
         ]
     )
     fun getOrderById(
-        @RequestParam
-        @Parameter(description = "ID пользователя", example = "1")
-        @Min(1, message = "userId должен быть больше 0")
-        userId: Long,
+        authentication: Authentication,
         @PathVariable
         @Parameter(description = "ID заказа", example = "1")
-        @Min(1, message = "orderId должен быть больше 0")
         id: Long
     ): ResponseEntity<OrderResponse> {
+        val userId = authentication.principal as Long
         return ResponseEntity.ok(orderService.getOrderById(id, userId))
     }
+
 
     @PostMapping
     @Operation(
         summary = "Оформить заказ из корзины",
-        description = "Создает новый заказ из товаров в корзине. Корзина должна содержать хотя бы один товар. После успешного оформления корзина очищается"
+        description = "Создает новый заказ из товаров в корзине. Корзина должна содержать хотя бы один товар. После успешного оформления корзина очищается",
+        security = [SecurityRequirement(name = "bearer-jwt")]
     )
     @ApiResponses(
         value = [
@@ -120,11 +125,15 @@ class OrderController(
             ),
             ApiResponse(
                 responseCode = "400",
-                description = "BadRequestException: пустой адрес доставки/корзина пуста/некорректный userId"
+                description = "BadRequestException: пустой адрес доставки или корзина пуста"
+            ),
+            ApiResponse(
+                responseCode = "401",
+                description = "UnauthorizedException: не авторизован"
             ),
             ApiResponse(
                 responseCode = "404",
-                description = "ResourceNotFoundException: корзина пуста или не найдена"
+                description = "ResourceNotFoundException: корзина или пользователь не найден"
             ),
             ApiResponse(
                 responseCode = "409",
@@ -137,12 +146,12 @@ class OrderController(
         ]
     )
     fun createOrder(
-        @RequestParam
-        @Parameter(description = "ID пользователя", example = "1")
-        @Min(1, message = "userId должен быть больше 0")
-        userId: Long,
-        @Valid @RequestBody request: CreateOrderRequest
+        authentication: Authentication,
+        @Valid
+        @RequestBody
+        request: CreateOrderRequest
     ): ResponseEntity<OrderResponse> {
+        val userId = authentication.principal as Long
         return ResponseEntity.status(HttpStatus.CREATED).body(
             orderService.createOrder(userId, request.deliveryAddress)
         )

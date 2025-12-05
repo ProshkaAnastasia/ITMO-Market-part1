@@ -1,24 +1,25 @@
 package ru.itmo.market.controller
 
+
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.media.Content
 import io.swagger.v3.oas.annotations.media.Schema
 import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.responses.ApiResponses
+import io.swagger.v3.oas.annotations.security.SecurityRequirement
 import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.validation.Valid
 import jakarta.validation.constraints.Max
 import jakarta.validation.constraints.Min
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
+import org.springframework.security.core.Authentication
 import org.springframework.web.bind.annotation.*
-import ru.itmo.market.model.dto.request.CreateShopRequest
-import ru.itmo.market.model.dto.request.UpdateShopRequest
-import ru.itmo.market.model.dto.response.PaginatedResponse
-import ru.itmo.market.model.dto.response.ProductResponse
-import ru.itmo.market.model.dto.response.ShopResponse
-import ru.itmo.market.service.ShopService
+import ru.itmo.market.model.dto.request.*
+import ru.itmo.market.model.dto.response.*
+import ru.itmo.market.service.*
+
 
 @RestController
 @RequestMapping("/api/shops")
@@ -26,6 +27,7 @@ import ru.itmo.market.service.ShopService
 class ShopController(
     private val shopService: ShopService
 ) {
+
 
     @GetMapping
     @Operation(
@@ -52,21 +54,22 @@ class ShopController(
     fun getShops(
         @RequestParam(defaultValue = "1")
         @Parameter(description = "Номер страницы (начиная с 1)", example = "1")
-        @Min(1, message = "page должен быть больше 0")
+        @Min(1, message = "Страницы начинаются с 1")
         page: Int,
         @RequestParam(defaultValue = "20")
         @Parameter(description = "Количество магазинов на странице", example = "20")
-        @Min(1, message = "pageSize должен быть больше 0")
-        @Max(50, message = "pageSize не может превышать 50")
+        @Min(1, message = "Размер страницы минимум 1")
+        @Max(50, message = "Размер страницы максимум 50")
         pageSize: Int
     ): ResponseEntity<PaginatedResponse<ShopResponse>> {
         return ResponseEntity.ok(shopService.getAllShops(page, pageSize))
     }
 
+
     @GetMapping("/{id}")
     @Operation(
         summary = "Получить информацию о магазине",
-        description = "Возвращает полную информацию о конкретном магазине, включая профиль и статистику. Доступно для всех пользователей"
+        description = "Возвращает полную информацию о конкретном магазине включая профиль и статистику. Доступно для всех пользователей"
     )
     @ApiResponses(
         value = [
@@ -74,10 +77,6 @@ class ShopController(
                 responseCode = "200",
                 description = "Информация о магазине успешно получена",
                 content = [Content(schema = Schema(implementation = ShopResponse::class))]
-            ),
-            ApiResponse(
-                responseCode = "400",
-                description = "BadRequestException: некорректный shopId"
             ),
             ApiResponse(
                 responseCode = "404",
@@ -92,11 +91,11 @@ class ShopController(
     fun getShopById(
         @PathVariable
         @Parameter(description = "ID магазина", example = "1")
-        @Min(1, message = "shopId должен быть больше 0")
         id: Long
     ): ResponseEntity<ShopResponse> {
         return ResponseEntity.ok(shopService.getShopById(id))
     }
+
 
     @GetMapping("/{id}/products")
     @Operation(
@@ -112,7 +111,7 @@ class ShopController(
             ),
             ApiResponse(
                 responseCode = "400",
-                description = "BadRequestException: некорректные параметры пагинации/некорректный id"
+                description = "BadRequestException: некорректные параметры пагинации"
             ),
             ApiResponse(
                 responseCode = "404",
@@ -127,25 +126,23 @@ class ShopController(
     fun getShopProducts(
         @PathVariable
         @Parameter(description = "ID магазина", example = "1")
-        @Min(1, message = "shopId должен быть больше 0")
         id: Long,
         @RequestParam(defaultValue = "1")
         @Parameter(description = "Номер страницы (начиная с 1)", example = "1")
-        @Min(1, message = "page должен быть больше 0")
         page: Int,
         @RequestParam(defaultValue = "20")
         @Parameter(description = "Количество товаров на странице", example = "20")
-        @Min(1, message = "pageSize должен быть больше 0")
-        @Max(50, message = "pageSize не может превышать 50")
         pageSize: Int
     ): ResponseEntity<PaginatedResponse<ProductResponse>> {
         return ResponseEntity.ok(shopService.getShopProducts(id, page, pageSize))
     }
 
+
     @PostMapping
     @Operation(
         summary = "Создать новый магазин",
-        description = "Создает новый магазин для пользователя. Один пользователь может создать несколько магазинов"
+        description = "Создает новый магазин для авторизованного пользователя. Требуется авторизация. Один пользователь может создать несколько магазинов",
+        security = [SecurityRequirement(name = "bearer-jwt")]
     )
     @ApiResponses(
         value = [
@@ -156,7 +153,11 @@ class ShopController(
             ),
             ApiResponse(
                 responseCode = "400",
-                description = "BadRequestException: некорректные данные магазина/некорректный userId"
+                description = "BadRequestException: некорректные данные магазина (пустое название и т.д.)"
+            ),
+            ApiResponse(
+                responseCode = "401",
+                description = "UnauthorizedException: не авторизован"
             ),
             ApiResponse(
                 responseCode = "409",
@@ -169,12 +170,12 @@ class ShopController(
         ]
     )
     fun createShop(
-        @RequestParam
-        @Parameter(description = "ID пользователя-продавца", example = "1")
-        @Min(1, message = "userId должен быть больше 0")
-        userId: Long,
-        @Valid @RequestBody request: CreateShopRequest
+        authentication: Authentication,
+        @Valid
+        @RequestBody
+        request: CreateShopRequest
     ): ResponseEntity<ShopResponse> {
+        val userId = authentication.principal as Long
         val response = shopService.createShop(
             sellerId = userId,
             name = request.name,
@@ -184,21 +185,27 @@ class ShopController(
         return ResponseEntity.status(HttpStatus.CREATED).body(response)
     }
 
-    @PutMapping("/{shopId}")
+
+    @PutMapping("/{id}")
     @Operation(
         summary = "Обновить информацию магазина",
-        description = "Редактирует информацию магазина. Может редактировать только владелец магазина или администратор"
+        description = "Редактирует информацию магазина. Может редактировать только владелец магазина или администратор",
+        security = [SecurityRequirement(name = "bearer-jwt")]
     )
     @ApiResponses(
         value = [
             ApiResponse(
                 responseCode = "200",
-                description = "Магазин успешно обновлен",
+                description = "Информация магазина успешно обновлена",
                 content = [Content(schema = Schema(implementation = ShopResponse::class))]
             ),
             ApiResponse(
                 responseCode = "400",
-                description = "BadRequestException: некорректные данные магазина/некорректный shopId/некорректный userId"
+                description = "BadRequestException: некорректные данные магазина"
+            ),
+            ApiResponse(
+                responseCode = "401",
+                description = "UnauthorizedException: не авторизован"
             ),
             ApiResponse(
                 responseCode = "403",
@@ -209,65 +216,25 @@ class ShopController(
                 description = "ResourceNotFoundException: магазин не найден"
             ),
             ApiResponse(
+                responseCode = "409",
+                description = "ConflictException: магазин с таким названием уже существует"
+            ),
+            ApiResponse(
                 responseCode = "500",
                 description = "Internal server error"
             )
         ]
     )
     fun updateShop(
+        authentication: Authentication,
         @PathVariable
-        @Parameter(description = "ID магазина", example = "1")
-        @Min(1, message = "shopId должен быть больше 0")
-        shopId: Long,
-        @RequestParam
-        @Parameter(description = "ID пользователя", example = "1")
-        @Min(1, message = "userId должен быть больше 0")
-        userId: Long,
-        @Valid @RequestBody request: UpdateShopRequest
+        @Parameter(description = "ID магазина для редактирования", example = "1")
+        id: Long,
+        @Valid
+        @RequestBody
+        request: UpdateShopRequest
     ): ResponseEntity<ShopResponse> {
-        return ResponseEntity.ok(shopService.updateShop(shopId, userId, request.name, request.description, request.avatarUrl))
-    }
-
-    @DeleteMapping("/{shopId}")
-    @Operation(
-        summary = "Удалить магазин",
-        description = "Полностью удаляет магазин"
-    )
-    @ApiResponses(
-        value = [
-            ApiResponse(
-                responseCode = "204",
-                description = "Магазин успешно удален"
-            ),
-            ApiResponse(
-                responseCode = "400",
-                description = "BadRequestException: некорректный shopId"
-            ),
-            ApiResponse(
-                responseCode = "403",
-                description = "ForbiddenException: нет прав удалять чужой магазин"
-            ),
-            ApiResponse(
-                responseCode = "404",
-                description = "ResourceNotFoundException: магазин не найден"
-            ),
-            ApiResponse(
-                responseCode = "500",
-                description = "Internal server error"
-            )
-        ]
-    )
-    fun deleteShop(
-        @PathVariable
-        @Parameter(description = "ID магазина", example = "1")
-        @Min(1, message = "shopId должен быть больше 0")
-        shopId: Long,
-        @RequestParam
-        @Parameter(description = "ID пользователя", example = "1")
-        @Min(1, message = "userId должен быть больше 0")
-        userId: Long
-    ): ResponseEntity<Unit> {
-        shopService.deleteShop(shopId, userId)
-        return ResponseEntity.noContent().build()
+        val userId = authentication.principal as Long
+        return ResponseEntity.ok(shopService.updateShop(id, userId, request.name, request.description, request.avatarUrl))
     }
 }

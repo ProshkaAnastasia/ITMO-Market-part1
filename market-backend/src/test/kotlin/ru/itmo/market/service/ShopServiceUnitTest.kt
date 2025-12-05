@@ -13,19 +13,15 @@ import org.springframework.data.domain.PageImpl
 import org.springframework.data.domain.PageRequest
 import ru.itmo.market.exception.ForbiddenException
 import ru.itmo.market.exception.ResourceNotFoundException
-import ru.itmo.market.model.dto.response.PaginatedResponse
-import ru.itmo.market.model.dto.response.ProductResponse
-import ru.itmo.market.model.dto.response.UserResponse
 import ru.itmo.market.model.entity.Product
 import ru.itmo.market.model.entity.Shop
 import ru.itmo.market.model.entity.User
 import ru.itmo.market.model.enums.ProductStatus
 import ru.itmo.market.model.enums.UserRole
-// ❌ УДАЛЕНЫ НЕНУЖНЫЕ ИМПОРТЫ РЕПОЗИТОРИЕВ
-// import ru.itmo.market.repository.CommentRepository 
-// import ru.itmo.market.repository.ProductRepository
-// import ru.itmo.market.repository.UserRepository
+import ru.itmo.market.repository.CommentRepository
+import ru.itmo.market.repository.ProductRepository
 import ru.itmo.market.repository.ShopRepository
+import ru.itmo.market.repository.UserRepository
 import java.math.BigDecimal
 import java.time.LocalDateTime
 import java.util.*
@@ -35,58 +31,45 @@ class ShopServiceUnitTest {
 
     @Mock
     private lateinit var shopRepository: ShopRepository
-    
-    // ✅ ИСПОЛЬЗУЕМ СЕРВИСЫ
     @Mock
-    private lateinit var productService: ProductService 
+    private lateinit var productRepository: ProductRepository
     @Mock
-    private lateinit var userService: UserService
+    private lateinit var userRepository: UserRepository
+    @Mock
+    private lateinit var commentRepository: CommentRepository
 
     private lateinit var shopService: ShopService
 
     // Constants
     private val SELLER_ID = 1L
     private val SHOP_ID = 100L
-    
-    // ✅ Добавлен DTO для мокирования UserService
-    private val DUMMY_USER_RESPONSE = UserResponse(
-        id = SELLER_ID, username = "u", email = "e", firstName = "John", 
-        lastName = "Doe", roles = emptySet(), createdAt = LocalDateTime.now()
+    private val DUMMY_USER = User(
+        id = SELLER_ID, username = "u", email = "e", password = "p",
+        firstName = "John", lastName = "Doe", roles = emptySet()
     )
 
-
-@BeforeEach
+    @BeforeEach
     fun setUp() {
         shopService = ShopService(
-            shopRepository,
-            productService, 
-            userService    
+            shopRepository = shopRepository,
+            productRepository = productRepository,
+            userRepository = userRepository,
+            commentRepository = commentRepository
         )
     }
 
     /**
-     * HELPER: Sets up mocks required by the private 'convertToResponse()' method.
+     * HELPER: Sets up mocks required by the private 'toResponse()' method.
      * This is needed for Create, Update, and GetById tests.
      */
-    private fun setupMocksForConvertToResponse() {
+    private fun setupMocksForToResponse() {
         // 1. Mock finding the seller (fixes ResourceNotFoundException)
-        // ✅ FIX: Используем userService.getUserById()
-        whenever(userService.getUserById(eq(SELLER_ID))).thenReturn(DUMMY_USER_RESPONSE)
+        whenever(userRepository.findById(eq(SELLER_ID))).thenReturn(Optional.of(DUMMY_USER))
 
-        // 2. Mock the product count (fixes NullPointerException in toResponse())
-        // ✅ FIX: Используем productService.countProductsByShopId()
-        whenever(productService.countProductsByShopId(eq(SHOP_ID))).thenReturn(0L) 
-    }
-    
-    // Helper для создания ProductResponse (для мокирования getShopProducts)
-    private fun createProductResponse(productId: Long, shopId: Long, rating: Double = 0.0, count: Long = 0L): ProductResponse {
-        return ProductResponse(
-            id = productId, name = "Test Product", description = "Desc",
-            price = BigDecimal("100.00"), imageUrl = null, shopId = shopId, 
-            sellerId = SELLER_ID, status = ProductStatus.APPROVED.name, 
-            rejectionReason = null, averageRating = rating, commentsCount = count,
-            createdAt = LocalDateTime.now(), updatedAt = LocalDateTime.now()
-        )
+        // 2. Mock the product count (fixes NullPointerException in extension function)
+        // The extension function calls findAllByShopId with PageRequest.of(0, 1)
+        whenever(productRepository.findAllByShopId(eq(SHOP_ID), any()))
+            .thenReturn(Page.empty())
     }
 
     @Test
@@ -94,9 +77,8 @@ class ShopServiceUnitTest {
         val shop = Shop(id = SHOP_ID, name = "Test Shop", sellerId = SELLER_ID)
         whenever(shopRepository.findById(eq(SHOP_ID))).thenReturn(Optional.of(shop))
 
-        // Prepare dependencies for convertToResponse()
-        // ✅ FIX: Называем хелпер корректно
-        setupMocksForConvertToResponse() 
+        // Prepare dependencies for toResponse()
+        setupMocksForToResponse()
 
         val result = shopService.getShopById(SHOP_ID)
 
@@ -104,39 +86,44 @@ class ShopServiceUnitTest {
         assertEquals(SHOP_ID, result.id)
         assertEquals("John Doe", result.sellerName)
         verify(shopRepository, times(1)).findById(SHOP_ID)
-        // ✅ FIX: Проверяем, что сервисы были вызваны
-        verify(userService, times(1)).getUserById(SELLER_ID)
-        verify(productService, times(1)).countProductsByShopId(SHOP_ID)
     }
 
  @Test
     fun `should create shop successfully`() {
-        val sellerId = SELLER_ID
-        val shopId = SHOP_ID 
+        val sellerId = 1L
+        val shopId = 1L
         val name = "New Shop"
         val description = "New Description"
         val avatarUrl = "https://example.com/avatar.jpg"
 
-        // ✅ FIX: Настраиваем моки ОДИН раз
-        whenever(userService.getUserById(eq(sellerId))).thenReturn(DUMMY_USER_RESPONSE)
-        whenever(productService.countProductsByShopId(eq(shopId))).thenReturn(0L)
+        val user = User(
+            id = sellerId,
+            username = "seller",
+            email = "seller@example.com",
+            password = "hashed",
+            firstName = "John",
+            lastName = "Doe",
+            roles = setOf(UserRole.SELLER)
+        )
 
-        // Мокаем save. Важно: сервис сначала проверяет existsBySellerId (вернет false по умолчанию),
-        // затем сохраняет, затем вызывает toResponse (который дергает userService и productService).
+        val productList = listOf<Product>()
+        val pageable = PageRequest.of(0, 1)
+        val productPage: Page<Product> = PageImpl(productList, pageable, 0)
+
+        whenever(userRepository.findById(eq(sellerId))).thenReturn(Optional.of(user))
+        whenever(productRepository.findAllByShopId(eq(shopId), any())).thenReturn(productPage)
+
         doReturn(Shop(id = shopId, name = name, description = description, avatarUrl = avatarUrl, sellerId = sellerId))
             .whenever(shopRepository).save(any())
-        
-        // ❌ УДАЛЕНО дублирование whenever(userService...), которое ломало тест
 
         val result = shopService.createShop(sellerId, name, description, avatarUrl)
 
         assertNotNull(result)
         assertEquals(name, result.name)
         assertEquals(description, result.description)
+        assertEquals(avatarUrl, result.avatarUrl)
 
         verify(shopRepository, times(1)).save(any())
-        // Проверяем, что toResponse отработал
-        verify(productService, times(1)).countProductsByShopId(shopId)
     }
 
     @Test
@@ -149,10 +136,9 @@ class ShopServiceUnitTest {
     }
 
     // ========================================================
-    //  Tests for updateShop
+    //  NEW TESTS FOR: updateShop (Covers Red Lines)
     // ========================================================
-    
-    @Test
+@Test
     fun `updateShop should update fields and return response when user is owner`() {
         // Arrange
         val oldShop = Shop(
@@ -162,12 +148,13 @@ class ShopServiceUnitTest {
         
         whenever(shopRepository.findById(SHOP_ID)).thenReturn(Optional.of(oldShop))
         
+        // ✅ FIX: Use doAnswer().whenever(...) to avoid NPE on non-nullable return types
         doAnswer { invocation -> 
             invocation.arguments[0] as Shop 
         }.whenever(shopRepository).save(any())
 
-        // Prepare dependencies for convertToResponse()
-        setupMocksForConvertToResponse() // ✅ FIX: Вызов корректного хелпера
+        // Prepare dependencies for toResponse()
+        setupMocksForToResponse()
 
         // Act
         val result = shopService.updateShop(SHOP_ID, SELLER_ID, "New Name", "New Desc", null)
@@ -179,7 +166,6 @@ class ShopServiceUnitTest {
         assertEquals("John Doe", result.sellerName)
         
         verify(shopRepository).save(any())
-        verify(userService, times(1)).getUserById(SELLER_ID) // ✅ Проверка
     }
 
     @Test
@@ -206,32 +192,29 @@ class ShopServiceUnitTest {
     }
 
     // ========================================================
-    //  Tests for getShopProducts
+    //  NEW TESTS FOR: getShopProducts (Covers Red Lines)
     // ========================================================
 
-@Test
+    @Test
     fun `getShopProducts should return paginated and mapped product list`() {
         // 1. Check shop existence
-        // ✅ FIX: Сервис теперь использует existsById, а не findById.
-        // Нам не нужно создавать объект Shop, достаточно вернуть true.
-        whenever(shopRepository.existsById(SHOP_ID)).thenReturn(true)
+        val shop = Shop(id = SHOP_ID, sellerId = SELLER_ID, name = "Shop")
+        whenever(shopRepository.findById(SHOP_ID)).thenReturn(Optional.of(shop))
 
-        // 2. Prepare Product DTO
-        val expectedRating = 4.5
-        val expectedCount = 10L
-        val productDto = createProductResponse(50L, SHOP_ID, expectedRating, expectedCount)
-        
-        // 3. Mock the result of delegation to ProductService
-        val paginatedResponse = PaginatedResponse(
-            data = listOf(productDto),
-            page = 1,
-            pageSize = 10,
-            totalElements = 1,
-            totalPages = 1
+        // 2. Mock Products Page
+        val product = Product(
+            id = 50L, name = "Test Product", price = BigDecimal("100.00"),
+            shopId = SHOP_ID, sellerId = SELLER_ID, status = ProductStatus.APPROVED,
+            createdAt = LocalDateTime.now(), updatedAt = LocalDateTime.now()
         )
+        val pageRequest = PageRequest.of(0, 10) // Service receives page 1 -> creates Request 0
+        val productPage = PageImpl(listOf(product), pageRequest, 1)
 
-        whenever(productService.getProductsByShopId(eq(SHOP_ID), eq(1), eq(10)))
-            .thenReturn(paginatedResponse)
+        whenever(productRepository.findAllByShopId(eq(SHOP_ID), any())).thenReturn(productPage)
+
+        // 3. Mock Comment Stats (The mapping logic)
+        whenever(commentRepository.getAverageRatingByProductId(50L)).thenReturn(4.5)
+        whenever(commentRepository.getCommentCountByProductId(50L)).thenReturn(10L)
 
         // Act
         val result = shopService.getShopProducts(SHOP_ID, 1, 10)
@@ -242,22 +225,18 @@ class ShopServiceUnitTest {
         
         val item = result.data[0]
         assertEquals(50L, item.id)
-        
-        // ✅ Проверяем вызов existsById
-        verify(shopRepository, times(1)).existsById(SHOP_ID)
-        verify(productService, times(1)).getProductsByShopId(SHOP_ID, 1, 10)
+        assertEquals(4.5, item.averageRating) // Verified mapping
+        assertEquals(10L, item.commentsCount) // Verified mapping
     }
 
     @Test
     fun `getShopProducts should throw exception if shop does not exist`() {
-        // ✅ FIX: Мокаем existsById, чтобы он вернул false.
-        // Старый мок findById вызывал ошибку UnnecessaryStubbingException, так как сервис его не вызывал.
-        whenever(shopRepository.existsById(SHOP_ID)).thenReturn(false)
+        whenever(shopRepository.findById(SHOP_ID)).thenReturn(Optional.empty())
 
         assertThrows<ResourceNotFoundException> {
             shopService.getShopProducts(SHOP_ID, 1, 10)
         }
 
-        verify(productService, never()).getProductsByShopId(any(), any(), any()) 
+        verify(productRepository, never()).findAllByShopId(any(), any())
     }
 }
