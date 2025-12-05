@@ -3,6 +3,7 @@ package ru.itmo.market.service
 import org.springframework.data.domain.PageRequest
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import ru.itmo.market.exception.BadRequestException
 import ru.itmo.market.exception.ConflictException
 import ru.itmo.market.exception.ForbiddenException
 import ru.itmo.market.exception.ResourceNotFoundException
@@ -40,6 +41,10 @@ class UserService(
             .orElseThrow { ResourceNotFoundException("Пользователь не найден") }
 
         email?.takeIf { it != user.email }?.let { newEmail ->
+            if (!newEmail.matches(Regex("^[A-Za-z0-9+_.-]+@[^@]+\\.[A-Za-z]{2,}$"))) {
+                throw BadRequestException("Некорректный формат email: $newEmail")
+            }
+
             if (userRepository.existsByEmail(newEmail)) {
                 throw ConflictException("Email $newEmail уже используется другим пользователем")
             }

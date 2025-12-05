@@ -154,7 +154,6 @@ class UserControllerIntegrationTest {
     }
 
     @Test
-    @Disabled 
     fun `should return 400 for invalid email`() {
         val user = testAuthHelper.createTestUser(username = "testuser", email = "testuser@example.com")
         
