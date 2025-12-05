@@ -5,7 +5,6 @@ import org.springframework.stereotype.Component
 import ru.itmo.market.model.entity.User
 import ru.itmo.market.model.enums.UserRole
 import ru.itmo.market.repository.UserRepository
-import org.springframework.security.crypto.password.PasswordEncoder
 import java.time.LocalDateTime
 
 @Component

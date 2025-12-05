@@ -13,6 +13,7 @@ import org.springframework.data.domain.PageRequest
 import ru.itmo.market.exception.ResourceNotFoundException
 import ru.itmo.market.model.dto.response.PaginatedResponse
 import ru.itmo.market.model.dto.response.ProductResponse
+import ru.itmo.market.model.dto.response.UserResponse
 import ru.itmo.market.model.entity.Product
 import ru.itmo.market.model.enums.ProductStatus
 // УДАЛЕНЫ НЕНУЖНЫЕ ИМПОРТЫ РЕПОЗИТОРИЕВ
@@ -30,9 +31,10 @@ class ModerationServiceUnitTest {
     private lateinit var productService: ProductService
 
     @Mock
-    private lateinit var commentService: CommentService 
-    // CommentService используется в конструкторе, но не в логике ModerationService,
-    // если она просто делегирует вызовы в ProductService. Оставляем для полноты.
+    private lateinit var commentService: CommentService
+
+    @Mock
+    private lateinit var userService: UserService
 
     private lateinit var moderationService: ModerationService
 
@@ -45,11 +47,13 @@ class ModerationServiceUnitTest {
 
     @BeforeEach
     fun setUp() {
-        // ✅ FIX: Передаем моки ProductService и CommentService
+
         moderationService = ModerationService(
             productService,
-            commentService
+            commentService,
+            userService
         )
+
     }
 
     // Хелпер для создания фейкового DTO, которое возвращает ProductService
@@ -187,7 +191,16 @@ class ModerationServiceUnitTest {
         whenever(productService.getPendingProducts(eq(page), eq(pageSize)))
             .thenReturn(expectedResponse)
 
-        val result = moderationService.getPendingProducts(page, pageSize)
+        whenever(userService.getUserById(eq(MODERATOR_ID)))
+            .thenReturn(UserResponse(id = MODERATOR_ID,
+                username = "moderator",
+                email = "testmod@example.com",
+                firstName = "Mod",
+                lastName = "Test",
+                roles = setOf("MODERATOR"),
+                createdAt = LocalDateTime.now()))
+
+        val result = moderationService.getPendingProducts(MODERATOR_ID, page, pageSize)
 
         assertEquals(1, result.data.size)
         assertEquals(pendingResponse.averageRating, result.data[0].averageRating)
@@ -214,7 +227,16 @@ class ModerationServiceUnitTest {
         whenever(productService.getPendingProducts(eq(page), eq(pageSize)))
             .thenReturn(emptyResponse)
 
-        val result = moderationService.getPendingProducts(page, pageSize)
+        whenever(userService.getUserById(eq(MODERATOR_ID)))
+            .thenReturn(UserResponse(id = MODERATOR_ID,
+                username = "moderator",
+                email = "testmod@example.com",
+                firstName = "Mod",
+                lastName = "Test",
+                roles = setOf("MODERATOR"),
+                createdAt = LocalDateTime.now()))
+
+        val result = moderationService.getPendingProducts(MODERATOR_ID, page, pageSize)
 
         assertTrue(result.data.isEmpty())
         verify(productService, times(1)).getPendingProducts(page, pageSize)
@@ -232,7 +254,16 @@ class ModerationServiceUnitTest {
         whenever(productService.getPendingProductById(eq(PRODUCT_ID)))
             .thenReturn(pendingResponse)
 
-        val result = moderationService.getPendingProductById(PRODUCT_ID)
+        whenever(userService.getUserById(eq(MODERATOR_ID)))
+            .thenReturn(UserResponse(id = MODERATOR_ID,
+                username = "moderator",
+                email = "testmod@example.com",
+                firstName = "Mod",
+                lastName = "Test",
+                roles = setOf("MODERATOR"),
+                createdAt = LocalDateTime.now()))
+
+        val result = moderationService.getPendingProductById(MODERATOR_ID, PRODUCT_ID)
 
         assertEquals(PRODUCT_ID, result.id)
         assertEquals(ProductStatus.PENDING.name, result.status)
@@ -247,8 +278,17 @@ class ModerationServiceUnitTest {
         whenever(productService.getPendingProductById(eq(PRODUCT_ID)))
             .thenThrow(ResourceNotFoundException("Товар не на модерации"))
 
+        whenever(userService.getUserById(eq(MODERATOR_ID)))
+            .thenReturn(UserResponse(id = MODERATOR_ID,
+                username = "moderator",
+                email = "testmod@example.com",
+                firstName = "Mod",
+                lastName = "Test",
+                roles = setOf("MODERATOR"),
+                createdAt = LocalDateTime.now()))
+
         val ex = assertThrows<ResourceNotFoundException> {
-            moderationService.getPendingProductById(PRODUCT_ID)
+            moderationService.getPendingProductById(MODERATOR_ID, PRODUCT_ID)
         }
         
         assertEquals("Товар не на модерации", ex.message)
@@ -261,8 +301,17 @@ class ModerationServiceUnitTest {
         whenever(productService.getPendingProductById(eq(PRODUCT_ID)))
             .thenThrow(ResourceNotFoundException("Товар не найден"))
 
+        whenever(userService.getUserById(eq(MODERATOR_ID)))
+            .thenReturn(UserResponse(id = MODERATOR_ID,
+                username = "moderator",
+                email = "testmod@example.com",
+                firstName = "Mod",
+                lastName = "Test",
+                roles = setOf("MODERATOR"),
+                createdAt = LocalDateTime.now()))
+
         assertThrows<ResourceNotFoundException> {
-            moderationService.getPendingProductById(PRODUCT_ID)
+            moderationService.getPendingProductById(MODERATOR_ID, PRODUCT_ID)
         }
         verify(productService, times(1)).getPendingProductById(PRODUCT_ID)
     }

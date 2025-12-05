@@ -7,16 +7,14 @@ import org.junit.jupiter.api.DisplayName
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
 import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.security.test.context.support.WithMockUser // ✅ FIX: Необходимый импорт для мокирования пользователя
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.get
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
 import org.testcontainers.containers.PostgreSQLContainer
+import ru.itmo.market.model.enums.UserRole
 import ru.itmo.market.repository.*
-// import ru.itmo.market.model.enums.UserRole // Больше не нужен
-// import ru.itmo.market.security.jwt.JwtTokenProvider // ❌ УДАЛЕН
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -49,13 +47,8 @@ class ModerationControllerIntegrationTest {
     @Autowired
     private lateinit var userRepository: UserRepository
 
-    // ❌ УДАЛЕНО, так как JWT удален
-    // @Autowired
-    // private lateinit var testAuthHelper: TestAuthHelper
-
-    // ❌ УДАЛЕНО, так как JWT удален
-    // @Autowired
-    // private lateinit var jwtTokenProvider: JwtTokenProvider
+    @Autowired
+    private lateinit var testAuthHelper: TestAuthHelper
 
     @BeforeEach
     fun setUp() {
@@ -66,12 +59,11 @@ class ModerationControllerIntegrationTest {
 
     @Test
     @DisplayName("should get pending products for moderator")
-    @WithMockUser(username = "moderator", roles = ["MODERATOR"]) // ✅ Имитируем запрос от аутентифицированного модератора
     fun testGetPendingProducts() {
-        // Убрана вся логика создания пользователя и токена
+        val moderator = testAuthHelper.createTestUser(username = "testmod", email = "testmod@example.com", roles = setOf(UserRole.USER, UserRole.MODERATOR))
 
         mockMvc.get("/api/moderation/products") {
-            // Убран заголовок Authorization
+            param("userId", moderator.id.toString())
             param("page", "1")
             param("pageSize", "20")
         }.andExpect {
@@ -84,12 +76,11 @@ class ModerationControllerIntegrationTest {
 
     @Test
     @DisplayName("should reject moderation endpoint for non-moderator")
-    @WithMockUser(username = "user", roles = ["USER"]) // ✅ Имитируем запрос от обычного пользователя
     fun testGetPendingProductsWithoutModeratorRole() {
-        // Убрана вся логика создания пользователя и токена
+        val user = testAuthHelper.createTestUser(username = "testuser", email = "testuser@example.com")
 
         mockMvc.get("/api/moderation/products") {
-            // Убран заголовок Authorization
+            param("userId", user.id.toString())
             param("page", "1")
             param("pageSize", "20")
         }.andExpect {
