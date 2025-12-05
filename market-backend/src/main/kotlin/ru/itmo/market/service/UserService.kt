@@ -50,7 +50,7 @@ class UserService(
 
     @Transactional
     fun deleteProfile(userId: Long) {
-        val user = userRepository.findById(userId)
+        userRepository.findById(userId)
             .orElseThrow { ResourceNotFoundException("Пользователь не найден") }
         userRepository.deleteById(userId)
     }

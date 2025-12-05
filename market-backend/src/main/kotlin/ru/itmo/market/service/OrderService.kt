@@ -67,8 +67,8 @@ class OrderService(
         }
 
         val items = orderItemRepository.findAllByOrderId(cart.id)
-        val newTotalPrice = items.fold(BigDecimal.ZERO) { acc, item ->
-            acc + item.price.multiply(BigDecimal(item.quantity))
+        val newTotalPrice = items.fold(BigDecimal.ZERO) { acc, orderItem ->
+            acc + orderItem.price.multiply(BigDecimal(orderItem.quantity))
         }
 
         val updatedCart = cart.copy(totalPrice = newTotalPrice)
@@ -92,8 +92,8 @@ class OrderService(
         }
 
         val items = orderItemRepository.findAllByOrderId(cart.id)
-        val newTotalPrice = items.fold(BigDecimal.ZERO) { acc, item ->
-            acc + item.price.multiply(BigDecimal(item.quantity))
+        val newTotalPrice = items.fold(BigDecimal.ZERO) { acc, orderItem ->
+            acc + orderItem.price.multiply(BigDecimal(orderItem.quantity))
         }
 
         val updatedCart = cart.copy(totalPrice = newTotalPrice)
@@ -113,8 +113,8 @@ class OrderService(
 
 
         val items = orderItemRepository.findAllByOrderId(cart.id)
-        val newTotalPrice = items.fold(BigDecimal.ZERO) { acc, item ->
-            acc + item.price.multiply(BigDecimal(item.quantity))
+        val newTotalPrice = items.fold(BigDecimal.ZERO) { acc, orderItem ->
+            acc + orderItem.price.multiply(BigDecimal(orderItem.quantity))
         }
 
         val updatedCart = cart.copy(totalPrice = newTotalPrice)
@@ -123,7 +123,7 @@ class OrderService(
     }
 
     @Transactional
-    fun clearCart(userId: Long): Unit {
+    fun clearCart(userId: Long) {
         val cart = orderRepository.findByUserIdAndStatus(userId, OrderStatus.CART)
             .orElseThrow { ResourceNotFoundException("Корзина не найдена") }
 
