@@ -28,4 +28,7 @@ interface ProductRepository : JpaRepository<Product, Long> {
     fun searchApprovedProducts(keyword: String, pageable: Pageable): Page<Product>
     
     fun findAllByStatusAndShopId(status: ProductStatus, shopId: Long, pageable: Pageable): Page<Product>
+
+    fun countByShopId(shopId: Long): Long
+    
 }

@@ -1,13 +1,11 @@
 package ru.itmo.market.controller
 
-
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.media.Content
 import io.swagger.v3.oas.annotations.media.Schema
 import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.responses.ApiResponses
-import io.swagger.v3.oas.annotations.security.SecurityRequirement
 import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.validation.Valid
 import jakarta.validation.constraints.Max
@@ -15,12 +13,13 @@ import jakarta.validation.constraints.Min
 import jakarta.validation.constraints.NotBlank
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
-import org.springframework.security.core.Authentication
 import org.springframework.web.bind.annotation.*
-import ru.itmo.market.model.dto.request.*
-import ru.itmo.market.model.dto.response.*
-import ru.itmo.market.service.*
-
+import ru.itmo.market.model.dto.request.CreateProductRequest
+import ru.itmo.market.model.dto.request.UpdateProductRequest
+import ru.itmo.market.model.dto.response.InfiniteScrollResponse
+import ru.itmo.market.model.dto.response.PaginatedResponse
+import ru.itmo.market.model.dto.response.ProductResponse
+import ru.itmo.market.service.ProductService
 
 @RestController
 @RequestMapping("/api/products")
@@ -28,7 +27,6 @@ import ru.itmo.market.service.*
 class ProductController(
     private val productService: ProductService
 ) {
-
 
     @GetMapping
     @Operation(
@@ -55,12 +53,12 @@ class ProductController(
     fun getProducts(
         @RequestParam(defaultValue = "1")
         @Parameter(description = "Номер страницы (начиная с 1)", example = "1")
-        @Min(1, message = "Страницы начинаются с 1")
+        @Min(1, message = "page должен быть больше 0")
         page: Int,
         @RequestParam(defaultValue = "20")
         @Parameter(description = "Количество товаров на странице", example = "20")
-        @Min(1, message = "Размер страницы минимум 1")
-        @Max(50, message = "Размер страницы максимум 50")
+        @Min(1, message = "pageSize должен быть больше 0")
+        @Max(50, message = "pageSize не может превышать 50")
         pageSize: Int
     ): ResponseEntity<PaginatedResponse<ProductResponse>> {
         val response = productService.getApprovedProducts(page, pageSize)
@@ -70,17 +68,16 @@ class ProductController(
             .body(response)
     }
 
-
     @GetMapping("/infinite")
     @Operation(
-        summary = "Получить список товаров (infinite scroll)",
-        description = "Возвращает товары для бесконечной прокрутки. Поддерживает загрузку следующей страницы при скролле вниз"
+        summary = "Получить товары для бесконечной прокрутки",
+        description = "Возвращает товары без общего количества записей для infinite scroll"
     )
     @ApiResponses(
         value = [
             ApiResponse(
                 responseCode = "200",
-                description = "Список товаров для infinite scroll успешно получен",
+                description = "Товары для infinite scroll успешно получены",
                 content = [Content(schema = Schema(implementation = InfiniteScrollResponse::class))]
             ),
             ApiResponse(
@@ -96,17 +93,16 @@ class ProductController(
     fun getProductsInfinite(
         @RequestParam(defaultValue = "1")
         @Parameter(description = "Номер страницы (начиная с 1)", example = "1")
-        @Min(1, message = "Страницы начинаются с 1")
+        @Min(1, message = "page должен быть больше 0")
         page: Int,
         @RequestParam(defaultValue = "20")
         @Parameter(description = "Количество товаров на странице", example = "20")
-        @Min(1, message = "Размер страницы минимум 1")
-        @Max(50, message = "Размер страницы максимум 50")
+        @Min(1, message = "pageSize должен быть больше 0")
+        @Max(50, message = "pageSize не может превышать 50")
         pageSize: Int
     ): ResponseEntity<InfiniteScrollResponse<ProductResponse>> {
         return ResponseEntity.ok(productService.getApprovedProductsInfinite(page, pageSize))
     }
-
 
     @GetMapping("/search")
     @Operation(
@@ -122,7 +118,7 @@ class ProductController(
             ),
             ApiResponse(
                 responseCode = "400",
-                description = "BadRequestException: пустые keywords или некорректные параметры пагинации"
+                description = "BadRequestException: некорректные ключевые слова или пагинация"
             ),
             ApiResponse(
                 responseCode = "500",
@@ -137,17 +133,16 @@ class ProductController(
         keywords: String,
         @RequestParam(defaultValue = "1")
         @Parameter(description = "Номер страницы (начиная с 1)", example = "1")
-        @Min(1, message = "Страницы начинаются с 1")
+        @Min(1, message = "page должен быть больше 0")
         page: Int,
         @RequestParam(defaultValue = "20")
         @Parameter(description = "Количество товаров на странице", example = "20")
-        @Min(1, message = "Размер страницы минимум 1")
-        @Max(50, message = "Размер страницы максимум 50")
+        @Min(1, message = "pageSize должен быть больше 0")
+        @Max(50, message = "pageSize не может превышать 50")
         pageSize: Int
     ): ResponseEntity<PaginatedResponse<ProductResponse>> {
         return ResponseEntity.ok(productService.searchProducts(keywords, page, pageSize))
     }
-
 
     @GetMapping("/{id}")
     @Operation(
@@ -162,8 +157,12 @@ class ProductController(
                 content = [Content(schema = Schema(implementation = ProductResponse::class))]
             ),
             ApiResponse(
+                responseCode = "400",
+                description = "BadRequestException: некорректный productId"
+            ),
+            ApiResponse(
                 responseCode = "404",
-                description = "ResourceNotFoundException: товар не найден или не одобрен"
+                description = "ResourceNotFoundException: товар не найден"
             ),
             ApiResponse(
                 responseCode = "500",
@@ -174,32 +173,27 @@ class ProductController(
     fun getProductById(
         @PathVariable
         @Parameter(description = "ID товара", example = "1")
+        @Min(1, message = "productId должен быть больше 0")
         id: Long
     ): ResponseEntity<ProductResponse> {
         return ResponseEntity.ok(productService.getProductById(id))
     }
 
-
     @PostMapping
     @Operation(
         summary = "Создать новый товар",
-        description = "Создает новый товар и отправляет его на модерацию. Требуется авторизация",
-        security = [SecurityRequirement(name = "bearer-jwt")]
+        description = "Создает новый товар в магазине продавца. Товар автоматически попадает на модерацию"
     )
     @ApiResponses(
         value = [
             ApiResponse(
                 responseCode = "201",
-                description = "Товар успешно создан и отправлен на модерацию",
+                description = "Товар успешно создан",
                 content = [Content(schema = Schema(implementation = ProductResponse::class))]
             ),
             ApiResponse(
                 responseCode = "400",
-                description = "BadRequestException: некорректные данные товара (пустое название, отрицательная цена и т.д.)"
-            ),
-            ApiResponse(
-                responseCode = "401",
-                description = "UnauthorizedException: не авторизован"
+                description = "BadRequestException: некорректные данные товара"
             ),
             ApiResponse(
                 responseCode = "403",
@@ -216,47 +210,42 @@ class ProductController(
         ]
     )
     fun createProduct(
-        authentication: Authentication,
+        @RequestParam
+        @Parameter(description = "ID продавца", example = "1")
+        @Min(1, message = "sellerId должен быть больше 0")
+        sellerId: Long,
         @Valid @RequestBody request: CreateProductRequest
     ): ResponseEntity<ProductResponse> {
-        val userId = authentication.principal as Long
-
         val response = productService.createProduct(
             name = request.name,
             description = request.description,
             price = request.price,
             imageUrl = request.imageUrl,
             shopId = request.shopId,
-            sellerId = userId
+            sellerId = sellerId
         )
         return ResponseEntity.status(HttpStatus.CREATED).body(response)
     }
 
-
     @PutMapping("/{id}")
     @Operation(
         summary = "Обновить товар",
-        description = "Редактирует товар. Может редактировать только владелец товара или администратор. Отправляет товар на повторную модерацию",
-        security = [SecurityRequirement(name = "bearer-jwt")]
+        description = "Редактирует товар. Может редактировать только владелец товара или администратор. Отправляет товар на повторную модерацию"
     )
     @ApiResponses(
         value = [
             ApiResponse(
                 responseCode = "200",
-                description = "Товар успешно обновлен и отправлен на модерацию",
+                description = "Товар успешно обновлен",
                 content = [Content(schema = Schema(implementation = ProductResponse::class))]
             ),
             ApiResponse(
                 responseCode = "400",
-                description = "BadRequestException: некорректные данные товара"
-            ),
-            ApiResponse(
-                responseCode = "401",
-                description = "UnauthorizedException: не авторизован"
+                description = "BadRequestException: некорректные данные обновления/некорректный productId/некорректный sellerId"
             ),
             ApiResponse(
                 responseCode = "403",
-                description = "ForbiddenException: нет прав редактировать чужой товар"
+                description = "ForbiddenException: нет прав на редактирование"
             ),
             ApiResponse(
                 responseCode = "404",
@@ -269,23 +258,23 @@ class ProductController(
         ]
     )
     fun updateProduct(
-        authentication: Authentication,
         @PathVariable
-        @Parameter(description = "ID товара для редактирования", example = "1")
+        @Parameter(description = "ID товара", example = "1")
+        @Min(1, message = "productId должен быть больше 0")
         id: Long,
+        @RequestParam
+        @Parameter(description = "ID продавца", example = "1")
+        @Min(1, message = "sellerId должен быть больше 0")
+        sellerId: Long,
         @Valid @RequestBody request: UpdateProductRequest
     ): ResponseEntity<ProductResponse> {
-        val userId = authentication.principal as Long
-        val roles = (authentication.details as? Map<*, *>)?.get("roles") as? Set<*> ?: emptySet<String>()
-        return ResponseEntity.ok(productService.updateProduct(id, userId, roles as Set<String>, request))
+        return ResponseEntity.ok(productService.updateProduct(id, sellerId, request))
     }
-
 
     @DeleteMapping("/{id}")
     @Operation(
         summary = "Удалить товар",
-        description = "Полностью удаляет товар. Может удалять только владелец товара или администратор",
-        security = [SecurityRequirement(name = "bearer-jwt")]
+        description = "Полностью удаляет товар. Может удалять только владелец товара или администратор"
     )
     @ApiResponses(
         value = [
@@ -294,12 +283,12 @@ class ProductController(
                 description = "Товар успешно удален"
             ),
             ApiResponse(
-                responseCode = "401",
-                description = "UnauthorizedException: не авторизован"
+                responseCode = "400",
+                description = "BadRequestException: некорректный productId/некорректный sellerId"
             ),
             ApiResponse(
                 responseCode = "403",
-                description = "ForbiddenException: нет прав удалять чужой товар"
+                description = "ForbiddenException: нет прав на удаление"
             ),
             ApiResponse(
                 responseCode = "404",
@@ -312,14 +301,16 @@ class ProductController(
         ]
     )
     fun deleteProduct(
-        authentication: Authentication,
         @PathVariable
-        @Parameter(description = "ID товара для удаления", example = "1")
-        id: Long
+        @Parameter(description = "ID товара", example = "1")
+        @Min(1, message = "productId должен быть больше 0")
+        id: Long,
+        @RequestParam
+        @Parameter(description = "ID продавца", example = "1")
+        @Min(1, message = "sellerId должен быть больше 0")
+        sellerId: Long
     ): ResponseEntity<Unit> {
-        val userId = authentication.principal as Long
-        val roles = (authentication.details as? Map<*, *>)?.get("roles") as? Set<*> ?: emptySet<String>()
-        productService.deleteProduct(id, userId, roles as Set<String>)
+        productService.deleteProduct(id, sellerId)
         return ResponseEntity.noContent().build()
     }
 }

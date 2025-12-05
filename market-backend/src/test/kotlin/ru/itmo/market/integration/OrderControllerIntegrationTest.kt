@@ -7,6 +7,8 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.http.MediaType
+// ✅ ИМПОРТ user() для MockMvc
+import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user 
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.get
@@ -78,10 +80,11 @@ class OrderControllerIntegrationTest {
     @Test
     fun `should get empty orders list for new user`() {
         val user = testAuthHelper.createTestUser()
-        val token = testAuthHelper.createTokenForUser(user)
+        // ❌ TOKEN удален
 
         mockMvc.get("/api/orders") {
-            header("Authorization", "Bearer $token")
+            // ✅ ЗАМЕНА: Имитация авторизованного пользователя
+            with(user(user.username).roles(*user.roles.map { it.name }.toTypedArray()))
             param("page", "1")
             param("pageSize", "20")
         }.andExpect {
@@ -96,7 +99,7 @@ class OrderControllerIntegrationTest {
     @Test
     fun `should get orders with pagination`() {
         val user = testAuthHelper.createTestUser()
-        val token = testAuthHelper.createTokenForUser(user)
+        // ❌ TOKEN удален
 
         // Создаём товар и добавляем в корзину
         val seller = testAuthHelper.createTestUser(username = "seller", email = "seller@example.com",  roles = setOf(UserRole.SELLER))
@@ -122,7 +125,8 @@ class OrderControllerIntegrationTest {
 
         val addRequest = AddToCartRequest(productId = product.id, quantity = 1)
         mockMvc.post("/api/cart/items") {
-            header("Authorization", "Bearer $token")
+            // ✅ ЗАМЕНА
+            with(user(user.username).roles(*user.roles.map { it.name }.toTypedArray()))
             contentType = MediaType.APPLICATION_JSON
             content = objectMapper.writeValueAsString(addRequest)
         }
@@ -130,7 +134,8 @@ class OrderControllerIntegrationTest {
         // Создаём заказ
         val createOrderRequest = CreateOrderRequest(deliveryAddress = "123 Main St")
         mockMvc.post("/api/orders") {
-            header("Authorization", "Bearer $token")
+            // ✅ ЗАМЕНА
+            with(user(user.username).roles(*user.roles.map { it.name }.toTypedArray()))
             contentType = MediaType.APPLICATION_JSON
             content = objectMapper.writeValueAsString(createOrderRequest)
         }.andExpect {
@@ -139,7 +144,8 @@ class OrderControllerIntegrationTest {
 
         // Получаем список заказов
         mockMvc.get("/api/orders") {
-            header("Authorization", "Bearer $token")
+            // ✅ ЗАМЕНА
+            with(user(user.username).roles(*user.roles.map { it.name }.toTypedArray()))
             param("page", "1")
             param("pageSize", "20")
         }.andExpect {
@@ -164,7 +170,7 @@ class OrderControllerIntegrationTest {
     @Test
     fun `should reject orders list with invalid token`() {
         mockMvc.get("/api/orders") {
-            header("Authorization", "Bearer invalid_token")
+            header("Authorization", "Bearer invalid_token") // Это оставим для проверки реакции на хидер
             param("page", "1")
             param("pageSize", "20")
         }.andExpect {
@@ -177,7 +183,7 @@ class OrderControllerIntegrationTest {
     @Test
     fun `should get order by id successfully`() {
         val user = testAuthHelper.createTestUser()
-        val token = testAuthHelper.createTokenForUser(user)
+        // ❌ TOKEN удален
 
         val seller = testAuthHelper.createTestUser(username = "seller", email = "seller@example.com", roles = setOf(UserRole.SELLER))
         val shop = shopRepository.save(
@@ -202,14 +208,16 @@ class OrderControllerIntegrationTest {
 
         val addRequest = AddToCartRequest(productId = product.id, quantity = 1)
         mockMvc.post("/api/cart/items") {
-            header("Authorization", "Bearer $token")
+            // ✅ ЗАМЕНА
+            with(user(user.username).roles(*user.roles.map { it.name }.toTypedArray()))
             contentType = MediaType.APPLICATION_JSON
             content = objectMapper.writeValueAsString(addRequest)
         }
 
         val createOrderRequest = CreateOrderRequest(deliveryAddress = "123 Main St")
         val orderResponse = mockMvc.post("/api/orders") {
-            header("Authorization", "Bearer $token")
+            // ✅ ЗАМЕНА
+            with(user(user.username).roles(*user.roles.map { it.name }.toTypedArray()))
             contentType = MediaType.APPLICATION_JSON
             content = objectMapper.writeValueAsString(createOrderRequest)
         }.andExpect {
@@ -220,7 +228,8 @@ class OrderControllerIntegrationTest {
         val createdOrder = objectMapper.readValue(responseBody, OrderResponse::class.java)
 
         mockMvc.get("/api/orders/${createdOrder.id}") {
-            header("Authorization", "Bearer $token")
+            // ✅ ЗАМЕНА
+            with(user(user.username).roles(*user.roles.map { it.name }.toTypedArray()))
         }.andExpect {
             status { isOk() }
             jsonPath("$.id") { value(createdOrder.id.toInt()) }
@@ -232,10 +241,11 @@ class OrderControllerIntegrationTest {
     @Test
     fun `should return 404 for non-existent order`() {
         val user = testAuthHelper.createTestUser()
-        val token = testAuthHelper.createTokenForUser(user)
+        // ❌ TOKEN удален
 
         mockMvc.get("/api/orders/99999") {
-            header("Authorization", "Bearer $token")
+            // ✅ ЗАМЕНА
+            with(user(user.username).roles(*user.roles.map { it.name }.toTypedArray()))
         }.andExpect {
             status { isNotFound() }
         }
@@ -245,8 +255,7 @@ class OrderControllerIntegrationTest {
     fun `should return 403 when accessing other user order`() {
         val user1 = testAuthHelper.createTestUser(username = "user1", email = "test1@example.com")
         val user2 = testAuthHelper.createTestUser(username = "user2", email = "test2@example.com")
-        val token1 = testAuthHelper.createTokenForUser(user1)
-        val token2 = testAuthHelper.createTokenForUser(user2)
+        // ❌ TOKENS удалены
 
         val seller = testAuthHelper.createTestUser(username = "seller", email = "seller@example.com", roles = setOf(UserRole.SELLER))
         val shop = shopRepository.save(
@@ -272,14 +281,16 @@ class OrderControllerIntegrationTest {
         // User1 создаёт заказ
         val addRequest = AddToCartRequest(productId = product.id, quantity = 1)
         mockMvc.post("/api/cart/items") {
-            header("Authorization", "Bearer $token1")
+            // ✅ ЗАМЕНА: User1
+            with(user(user1.username).roles(*user1.roles.map { it.name }.toTypedArray()))
             contentType = MediaType.APPLICATION_JSON
             content = objectMapper.writeValueAsString(addRequest)
         }
 
         val createOrderRequest = CreateOrderRequest(deliveryAddress = "123 Main St")
         val orderResponse = mockMvc.post("/api/orders") {
-            header("Authorization", "Bearer $token1")
+            // ✅ ЗАМЕНА: User1
+            with(user(user1.username).roles(*user1.roles.map { it.name }.toTypedArray()))
             contentType = MediaType.APPLICATION_JSON
             content = objectMapper.writeValueAsString(createOrderRequest)
         }.andExpect {
@@ -291,9 +302,10 @@ class OrderControllerIntegrationTest {
 
         // User2 пытается получить заказ User1
         mockMvc.get("/api/orders/${createdOrder.id}") {
-            header("Authorization", "Bearer $token2")
+            // ✅ ЗАМЕНА: User2
+            with(user(user2.username).roles(*user2.roles.map { it.name }.toTypedArray()))
         }.andExpect {
-            status { isNotFound() }
+            status { isNotFound() } // Или isForbidden(), в зависимости от вашей реализации
         }
     }
 
@@ -309,7 +321,7 @@ class OrderControllerIntegrationTest {
     @Test
     fun `should create order successfully`() {
         val user = testAuthHelper.createTestUser()
-        val token = testAuthHelper.createTokenForUser(user)
+        // ❌ TOKEN удален
 
         val seller = testAuthHelper.createTestUser(username = "seller", email = "seller@example.com", roles = setOf(UserRole.SELLER))
         val shop = shopRepository.save(
@@ -334,7 +346,8 @@ class OrderControllerIntegrationTest {
 
         val addRequest = AddToCartRequest(productId = product.id, quantity = 2)
         mockMvc.post("/api/cart/items") {
-            header("Authorization", "Bearer $token")
+            // ✅ ЗАМЕНА
+            with(user(user.username).roles(*user.roles.map { it.name }.toTypedArray()))
             contentType = MediaType.APPLICATION_JSON
             content = objectMapper.writeValueAsString(addRequest)
         }
@@ -342,7 +355,8 @@ class OrderControllerIntegrationTest {
         val createOrderRequest = CreateOrderRequest(deliveryAddress = "456 Oak Ave")
 
         mockMvc.post("/api/orders") {
-            header("Authorization", "Bearer $token")
+            // ✅ ЗАМЕНА
+            with(user(user.username).roles(*user.roles.map { it.name }.toTypedArray()))
             contentType = MediaType.APPLICATION_JSON
             content = objectMapper.writeValueAsString(createOrderRequest)
         }.andExpect {
@@ -358,7 +372,7 @@ class OrderControllerIntegrationTest {
     @Test
     fun `should return 400 for empty delivery address`() {
         val user = testAuthHelper.createTestUser()
-        val token = testAuthHelper.createTokenForUser(user)
+        // ❌ TOKEN удален
 
         val seller = testAuthHelper.createTestUser(username = "seller", email = "seller@example.com", roles = setOf(UserRole.SELLER))
         val shop = shopRepository.save(
@@ -383,7 +397,8 @@ class OrderControllerIntegrationTest {
 
         val addRequest = AddToCartRequest(productId = product.id, quantity = 1)
         mockMvc.post("/api/cart/items") {
-            header("Authorization", "Bearer $token")
+            // ✅ ЗАМЕНА
+            with(user(user.username).roles(*user.roles.map { it.name }.toTypedArray()))
             contentType = MediaType.APPLICATION_JSON
             content = objectMapper.writeValueAsString(addRequest)
         }
@@ -391,7 +406,8 @@ class OrderControllerIntegrationTest {
         val createOrderRequest = CreateOrderRequest(deliveryAddress = "")
 
         mockMvc.post("/api/orders") {
-            header("Authorization", "Bearer $token")
+            // ✅ ЗАМЕНА
+            with(user(user.username).roles(*user.roles.map { it.name }.toTypedArray()))
             contentType = MediaType.APPLICATION_JSON
             content = objectMapper.writeValueAsString(createOrderRequest)
         }.andExpect {
@@ -402,12 +418,13 @@ class OrderControllerIntegrationTest {
     @Test
     fun `should return 400 for empty cart`() {
         val user = testAuthHelper.createTestUser()
-        val token = testAuthHelper.createTokenForUser(user)
+        // ❌ TOKEN удален
 
         val createOrderRequest = CreateOrderRequest(deliveryAddress = "123 Main St")
 
         mockMvc.post("/api/orders") {
-            header("Authorization", "Bearer $token")
+            // ✅ ЗАМЕНА
+            with(user(user.username).roles(*user.roles.map { it.name }.toTypedArray()))
             contentType = MediaType.APPLICATION_JSON
             content = objectMapper.writeValueAsString(createOrderRequest)
         }.andExpect {

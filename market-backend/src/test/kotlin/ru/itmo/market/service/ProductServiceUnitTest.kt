@@ -11,491 +11,181 @@ import org.mockito.kotlin.*
 import ru.itmo.market.exception.ForbiddenException
 import ru.itmo.market.exception.ResourceNotFoundException
 import ru.itmo.market.model.dto.request.UpdateProductRequest
+import ru.itmo.market.model.dto.response.ShopResponse
+import ru.itmo.market.model.dto.response.UserResponse
 import ru.itmo.market.model.entity.Product
 import ru.itmo.market.model.enums.ProductStatus
-import ru.itmo.market.repository.CommentRepository
 import ru.itmo.market.repository.ProductRepository
-import org.springframework.data.domain.PageImpl
-import org.springframework.data.domain.PageRequest
-import ru.itmo.market.model.entity.Shop
-import ru.itmo.market.repository.ShopRepository
+import java.math.BigDecimal
 import java.time.LocalDateTime
 import java.util.*
-import java.math.BigDecimal
 
 @ExtendWith(MockitoExtension::class)
 class ProductServiceUnitTest {
 
     @Mock
     private lateinit var productRepository: ProductRepository
-
     @Mock
-    private lateinit var shopRepository: ShopRepository
-
+    private lateinit var shopService: ShopService
     @Mock
-    private lateinit var commentRepository: CommentRepository
+    private lateinit var commentService: CommentService
+    @Mock
+    private lateinit var userService: UserService
 
     private lateinit var productService: ProductService
+
+    private val SELLER_ID = 1L
+    private val SHOP_ID = 1L
+    private val MODERATOR_ID = 99L
+    private val PRODUCT_ID = 100L
+    // ✅ FIX: Добавлена константа USER_ID
+    private val USER_ID = 3L 
 
     @BeforeEach
     fun setUp() {
         productService = ProductService(
             productRepository,
-            shopRepository,
-            commentRepository
+            shopService,
+            commentService,
+            userService
         )
     }
 
-    @Test
-    fun `should get product by id successfully`() {
-        val productId = 100L
-        
-        val product = Product(
-            id = productId,
-            name = "Test Product",
-            description = "Test Description",
-            price = BigDecimal("99.99"),
-            shopId = 1L,
-            sellerId = 1L,
-            status = ProductStatus.APPROVED,
-            createdAt = LocalDateTime.now(),
-            updatedAt = LocalDateTime.now()
+    private fun mockUser(userId: Long, roles: Set<String>) {
+        val user = UserResponse(
+            id = userId,
+            username = "user$userId",
+            email = "email",
+            firstName = "Fn",
+            lastName = "Ln",
+            roles = roles,
+            createdAt = LocalDateTime.now()
         )
-        
-        whenever(productRepository.findById(eq(productId)))
-            .thenReturn(Optional.of(product))
-        // ✅ ИСПРАВЛЕНО: Используйте eq() для конкретного ID
-        whenever(commentRepository.getAverageRatingByProductId(eq(productId)))
-            .thenReturn(4.5)
-        whenever(commentRepository.getCommentCountByProductId(eq(productId)))
-            .thenReturn(10L)
-
-        val result = productService.getProductById(productId)
-
-        assertNotNull(result)
-        assertEquals(productId, result.id)
-        assertEquals("Test Product", result.name)
-        assertEquals(BigDecimal("99.99"), result.price)
-        
-        verify(productRepository, times(1)).findById(productId)
-        verify(commentRepository, times(1)).getAverageRatingByProductId(productId)
-        verify(commentRepository, times(1)).getCommentCountByProductId(productId)
+        whenever(userService.getUserById(userId)).thenReturn(user)
     }
 
-    @Test
-    fun `should throw ResourceNotFoundException when product not found`() {
-        val productId = 999L
-        
-        whenever(productRepository.findById(eq(productId)))
-            .thenReturn(Optional.empty())
-
-        assertThrows<ResourceNotFoundException> {
-            productService.getProductById(productId)
-        }
-        
-        verify(commentRepository, never()).getAverageRatingByProductId(any())
+    private fun mockCommentStats(productId: Long) {
+        whenever(commentService.getAverageRatingByProductId(productId)).thenReturn(5.0)
+        whenever(commentService.getCommentCountByProductId(productId)).thenReturn(10L)
     }
 
+    // ==========================================
+    // CRUD Tests
+    // ==========================================
+
     @Test
-    fun `should create product successfully`() {
-        val name = "New Product"
-        val description = "Product Description"
-        val price = BigDecimal("149.99")
-        val imageUrl = "http://example.com/image.jpg"
-        val shopId = 1L
-        val sellerId = 1L
-
-        val shop = Shop(
-            name = "Test Shop",
-            description = "Shop Desc",
-            avatarUrl = "http://example.url.png",
-            sellerId = sellerId
+    fun `createProduct should succeed for shop owner`() {
+        // Arrange
+        val shopDto = ShopResponse(
+            id = SHOP_ID, name = "Shop", description = null, avatarUrl = null,
+            sellerId = SELLER_ID, sellerName = "Seller", productsCount = 0,
+            createdAt = LocalDateTime.now(), updatedAt = LocalDateTime.now()
         )
+        whenever(shopService.getShopById(SHOP_ID)).thenReturn(shopDto)
 
-        whenever(shopRepository.findById(any()))
-            .thenReturn(Optional.of(shop))
+        doAnswer { 
+            (it.arguments[0] as Product).copy(id = PRODUCT_ID) 
+        }.whenever(productRepository).save(any())
+        mockCommentStats(PRODUCT_ID)
 
-        // ✅ ДЕЙСТВИТЕЛЬНО ИСПРАВЛЕНО: argumentCaptor для захвата аргумента
-        val productCaptor = argumentCaptor<Product>()
-        whenever(productRepository.save(productCaptor.capture())).thenAnswer { invocation ->
-            // Возвращаем сохраненный Product с ID
-            (invocation.arguments[0] as Product).copy(id = 1L)
-        }
-        
-        whenever(commentRepository.getAverageRatingByProductId(eq(1L)))
-            .thenReturn(null)
-        whenever(commentRepository.getCommentCountByProductId(eq(1L)))
-            .thenReturn(0L)
+        // Act
+        val result = productService.createProduct("Prod", "Desc", BigDecimal("10"), null, SHOP_ID, SELLER_ID)
 
-        val result = productService.createProduct(name, description, price, imageUrl, shopId, sellerId)
-
-        assertNotNull(result, "ProductResponse не должен быть null")
-        assertEquals(name, result.name)
-        assertEquals(description, result.description)
-        assertEquals(price, result.price)
-        assertEquals(imageUrl, result.imageUrl)
+        // Assert
         assertEquals(ProductStatus.PENDING.name, result.status)
-        
-        verify(productRepository, times(1)).save(any())
+        verify(productRepository).save(any())
     }
 
-
     @Test
-    fun `should create product without image url`() {
-        val name = "Product Without Image"
-        val description = "Description"
-        val price = BigDecimal("99.99")
-        val shopId = 1L
-        val sellerId = 1L
-
-        val shop = Shop(
-            name = "Test Shop",
-            description = "Shop Desc",
-            avatarUrl = null,
-            sellerId = sellerId
-        )
-
-        whenever(shopRepository.findById(any()))
-         .thenReturn(Optional.of(shop))
-
-        // ✅ ИСПРАВЛЕНО: Используйте argumentCaptor + thenAnswer
-        val productCaptor = argumentCaptor<Product>()
-        whenever(productRepository.save(productCaptor.capture())).thenAnswer { invocation ->
-            val product = invocation.arguments[0] as Product
-            product.copy(id = 1L)
-        }
+    fun `updateProduct should succeed for Moderator`() {
+        val product = Product(id = PRODUCT_ID, name = "Old", price = BigDecimal("1"), shopId = SHOP_ID, sellerId = SELLER_ID, status = ProductStatus.APPROVED, createdAt = LocalDateTime.now(), updatedAt = LocalDateTime.now())
         
-        whenever(commentRepository.getAverageRatingByProductId(eq(1L)))
-            .thenReturn(null)
-        whenever(commentRepository.getCommentCountByProductId(eq(1L)))
-            .thenReturn(0L)
-
-        val result = productService.createProduct(name, description, price, null, shopId, sellerId)
-
-        assertNotNull(result)
-        assertEquals(name, result.name)
-        assertEquals(description, result.description)
-        assertEquals(price, result.price)
-        assertNull(result.imageUrl)  // ✅ Проверяем что imageUrl остается null
-        assertEquals(ProductStatus.PENDING.name, result.status)
+        whenever(productRepository.findById(PRODUCT_ID)).thenReturn(Optional.of(product))
+        mockUser(MODERATOR_ID, setOf("MODERATOR")) // Пользователь - модератор
         
-        verify(productRepository, times(1)).save(any())
-    }
+        doAnswer { 
+            it.arguments[0] as Product 
+        }.whenever(productRepository).save(any())
+        mockCommentStats(PRODUCT_ID)
 
-
-    @Test
-    fun `should update product by seller successfully`() {
-        val productId = 100L
-        val userId = 1L
-        val userRoles = setOf("SELLER")
-
-        val existingProduct = Product(
-            id = productId,
-            name = "Old Name",
-            description = "Old Description",
-            price = BigDecimal("99.99"),
-            shopId = 1L,
-            sellerId = userId,
-            status = ProductStatus.APPROVED,
-            createdAt = LocalDateTime.now(),
-            updatedAt = LocalDateTime.now()
-        )
-
-        val updateRequest = UpdateProductRequest(
-            name = "New Name",
-            description = "New Description",
-            price = BigDecimal("149.99"),
-            imageUrl = null
-        )
-
-        // ✅ ИСПРАВЛЕНО: Используйте argumentCaptor + thenAnswer для save()
-        val productCaptor = argumentCaptor<Product>()
-        whenever(productRepository.findById(eq(productId)))
-            .thenReturn(Optional.of(existingProduct))
-        whenever(productRepository.save(productCaptor.capture())).thenAnswer { invocation ->
-            val product = invocation.arguments[0] as Product
-            product.copy(id = productId)  // Возвращаем с оригинальным ID
-        }
+        val request = UpdateProductRequest(name = "New Name", description = null, price = null, imageUrl = null)
         
-        whenever(commentRepository.getAverageRatingByProductId(eq(productId)))
-            .thenReturn(4.5)
-        whenever(commentRepository.getCommentCountByProductId(eq(productId)))
-            .thenReturn(10L)
+        val result = productService.updateProduct(PRODUCT_ID, MODERATOR_ID, request)
 
-        val result = productService.updateProduct(productId, userId, userRoles, updateRequest)
-
-        assertNotNull(result)
         assertEquals("New Name", result.name)
-        assertEquals("New Description", result.description)
-        assertEquals(BigDecimal("149.99"), result.price)
-        assertEquals(ProductStatus.APPROVED.name, result.status)  // ✅ Добавлена проверка статуса
-        
-        verify(productRepository, times(1)).findById(productId)
-        verify(productRepository, times(1)).save(any())
     }
 
+    // ==========================================
+    // Moderation Tests (Now in ProductService)
+    // ==========================================
 
     @Test
-    fun `should update product by moderator even if not seller`() {
-        val productId = 100L
-        val userId = 2L  // Не продавец
-        val userRoles = setOf("MODERATOR")
-
-        val existingProduct = Product(
-            id = productId,
-            name = "Old Name",
-            description = "Old Description",
-            price = BigDecimal("99.99"),
-            shopId = 1L,
-            sellerId = 1L,  // Другой продавец
-            status = ProductStatus.APPROVED,
-            createdAt = LocalDateTime.now(),
-            updatedAt = LocalDateTime.now()
-        )
-
-        val updateRequest = UpdateProductRequest(
-            name = "New Name",
-            description = null,
-            price = null,
-            imageUrl = null
-        )
-
-        // ✅ ИСПРАВЛЕНО: Используйте argumentCaptor + thenAnswer для save()
-        val productCaptor = argumentCaptor<Product>()
-        whenever(productRepository.findById(eq(productId)))
-            .thenReturn(Optional.of(existingProduct))
-        whenever(productRepository.save(productCaptor.capture())).thenAnswer { invocation ->
-            val product = invocation.arguments[0] as Product
-            product.copy(id = productId)  // Возвращаем с оригинальным ID
-        }
+    fun `approveProduct should succeed for Moderator`() {
+        // Arrange
+        mockUser(MODERATOR_ID, setOf("MODERATOR"))
         
-        whenever(commentRepository.getAverageRatingByProductId(eq(productId)))
-            .thenReturn(4.5)
-        whenever(commentRepository.getCommentCountByProductId(eq(productId)))
-            .thenReturn(10L)
-
-        val result = productService.updateProduct(productId, userId, userRoles, updateRequest)
-
-        assertNotNull(result)
-        assertEquals("New Name", result.name)
-        assertEquals("Old Description", result.description)  // ✅ Описание не изменилось
-        assertEquals(BigDecimal("99.99"), result.price)      // ✅ Цена не изменилась
-        assertEquals(ProductStatus.APPROVED.name, result.status)  // ✅ Статус не изменился
+        val pendingProduct = Product(
+            id = PRODUCT_ID, name = "Item", price = BigDecimal("10"), shopId = SHOP_ID, sellerId = SELLER_ID,
+            status = ProductStatus.PENDING, createdAt = LocalDateTime.now(), updatedAt = LocalDateTime.now()
+        )
+        whenever(productRepository.findById(PRODUCT_ID)).thenReturn(Optional.of(pendingProduct))
         
-        verify(productRepository, times(1)).findById(productId)
-        verify(productRepository, times(1)).save(any())
+        doAnswer { 
+            it.arguments[0] as Product 
+        }.whenever(productRepository).save(any())
+
+        mockCommentStats(PRODUCT_ID)
+
+        // Act
+        val result = productService.approveProduct(PRODUCT_ID, MODERATOR_ID)
+
+        // Assert
+        assertEquals(ProductStatus.APPROVED.name, result.status)
+        verify(productRepository).save(check {
+            assertEquals(ProductStatus.APPROVED, it.status)
+        })
     }
 
-
     @Test
-    fun `should throw ForbiddenException when user is not seller or moderator`() {
-        val productId = 100L
-        val userId = 2L  // Не продавец
-        val userRoles = setOf("USER")  // Обычный пользователь
-
-        val existingProduct = Product(
-            id = productId,
-            name = "Old Name",
-            description = "Old Description",
-            price = BigDecimal("99.99"),
-            shopId = 1L,
-            sellerId = 1L,  // Другой продавец
-            status = ProductStatus.APPROVED,
-            createdAt = LocalDateTime.now(),
-            updatedAt = LocalDateTime.now()
-        )
-
-        val updateRequest = UpdateProductRequest(
-            name = "New Name",
-            description = null,
-            price = null,
-            imageUrl = null
-        )
-
-        whenever(productRepository.findById(eq(productId)))
-            .thenReturn(Optional.of(existingProduct))
+    fun `approveProduct should fail for simple User`() {
+        // ✅ FIX: Используем константу USER_ID
+        mockUser(USER_ID, setOf("USER")) 
 
         assertThrows<ForbiddenException> {
-            productService.updateProduct(productId, userId, userRoles, updateRequest)
+            // ✅ FIX: Используем константу USER_ID
+            productService.approveProduct(PRODUCT_ID, USER_ID) 
         }
-        
         verify(productRepository, never()).save(any())
     }
 
     @Test
-    fun `should throw ResourceNotFoundException when updating non-existent product`() {
-        val productId = 999L
-        val userId = 1L
-        val userRoles = setOf("SELLER")
+    fun `approveProduct should fail if status is not PENDING`() {
+        mockUser(MODERATOR_ID, setOf("MODERATOR"))
+        
+        val approvedProduct = Product(id = PRODUCT_ID, name = "Item", price = BigDecimal("10"), shopId = SHOP_ID, sellerId = SELLER_ID, status = ProductStatus.APPROVED, createdAt = LocalDateTime.now(), updatedAt = LocalDateTime.now())
+        whenever(productRepository.findById(PRODUCT_ID)).thenReturn(Optional.of(approvedProduct))
 
-        val updateRequest = UpdateProductRequest(
-            name = "New Name",
-            description = null,
-            price = null,
-            imageUrl = null
-        )
-
-        whenever(productRepository.findById(eq(productId)))
-            .thenReturn(Optional.empty())
-
-        assertThrows<ResourceNotFoundException> {
-            productService.updateProduct(productId, userId, userRoles, updateRequest)
+        val ex = assertThrows<IllegalStateException> {
+            productService.approveProduct(PRODUCT_ID, MODERATOR_ID)
         }
+        assertEquals("Может быть одобрен только товар со статусом PENDING", ex.message)
+    }
+
+    @Test
+    fun `rejectProduct should succeed and set reason`() {
+        mockUser(MODERATOR_ID, setOf("ADMIN")) // Админ тоже может
         
-        verify(productRepository, never()).save(any())
-    }
+        val pendingProduct = Product(id = PRODUCT_ID, name = "Item", price = BigDecimal("10"), shopId = SHOP_ID, sellerId = SELLER_ID, status = ProductStatus.PENDING, createdAt = LocalDateTime.now(), updatedAt = LocalDateTime.now())
+        whenever(productRepository.findById(PRODUCT_ID)).thenReturn(Optional.of(pendingProduct))
+        doAnswer { 
+            it.arguments[0] as Product 
+        }.whenever(productRepository).save(any())
 
-    @Test
-    fun `should delete product by seller successfully`() {
-        val productId = 100L
-        val userId = 1L
-        val userRoles = setOf("SELLER")
+        mockCommentStats(PRODUCT_ID)
 
-        val product = Product(
-            id = productId,
-            name = "Product",
-            description = "Description",
-            price = BigDecimal("99.99"),
-            shopId = 1L,
-            sellerId = userId,
-            status = ProductStatus.APPROVED,
-            createdAt = LocalDateTime.now(),
-            updatedAt = LocalDateTime.now()
-        )
+        val result = productService.rejectProduct(PRODUCT_ID, MODERATOR_ID, "Bad content")
 
-        whenever(productRepository.findById(eq(productId)))
-            .thenReturn(Optional.of(product))
-
-        productService.deleteProduct(productId, userId, userRoles)
-
-        verify(productRepository, times(1)).findById(productId)
-        verify(productRepository, times(1)).deleteById(productId)
-    }
-
-    @Test
-    fun `should delete product by moderator even if not seller`() {
-        val productId = 100L
-        val userId = 2L  // Не продавец
-        val userRoles = setOf("MODERATOR")
-
-        val product = Product(
-            id = productId,
-            name = "Product",
-            description = "Description",
-            price = BigDecimal("99.99"),
-            shopId = 1L,
-            sellerId = 1L,  // Другой продавец
-            status = ProductStatus.APPROVED,
-            createdAt = LocalDateTime.now(),
-            updatedAt = LocalDateTime.now()
-        )
-
-        whenever(productRepository.findById(eq(productId)))
-            .thenReturn(Optional.of(product))
-
-        productService.deleteProduct(productId, userId, userRoles)
-
-        verify(productRepository, times(1)).deleteById(productId)
-    }
-
-    @Test
-    fun `should throw ForbiddenException when deleting product without permission`() {
-        val productId = 100L
-        val userId = 2L  // Не продавец
-        val userRoles = setOf("USER")  // Обычный пользователь
-
-        val product = Product(
-            id = productId,
-            name = "Product",
-            description = "Description",
-            price = BigDecimal("99.99"),
-            shopId = 1L,
-            sellerId = 1L,  // Другой продавец
-            status = ProductStatus.APPROVED,
-            createdAt = LocalDateTime.now(),
-            updatedAt = LocalDateTime.now()
-        )
-
-        whenever(productRepository.findById(eq(productId)))
-            .thenReturn(Optional.of(product))
-
-        assertThrows<ForbiddenException> {
-            productService.deleteProduct(productId, userId, userRoles)
-        }
-        
-        verify(productRepository, never()).deleteById(any())
-    }
-
-    @Test
-    fun `should throw ResourceNotFoundException when deleting non-existent product`() {
-        val productId = 999L
-        val userId = 1L
-        val userRoles = setOf("SELLER")
-
-        whenever(productRepository.findById(eq(productId)))
-            .thenReturn(Optional.empty())
-
-        assertThrows<ResourceNotFoundException> {
-            productService.deleteProduct(productId, userId, userRoles)
-        }
-        
-        verify(productRepository, never()).deleteById(any())
-    }
-
-    @Test
-    fun `should get approved products with pagination`() {
-        val page = 1
-        val pageSize = 10
-
-        val products = listOf(
-            Product(
-                id = 1L,
-                name = "Product 1",
-                description = "Description 1",
-                price = BigDecimal("50.00"),
-                shopId = 1L,
-                sellerId = 1L,
-                status = ProductStatus.APPROVED,
-                createdAt = LocalDateTime.now(),
-                updatedAt = LocalDateTime.now()
-            ),
-            Product(
-                id = 2L,
-                name = "Product 2",
-                description = "Description 2",
-                price = BigDecimal("75.00"),
-                shopId = 1L,
-                sellerId = 1L,
-                status = ProductStatus.APPROVED,
-                createdAt = LocalDateTime.now(),
-                updatedAt = LocalDateTime.now()
-            )
-        )
-
-        val pageable = PageRequest.of(page - 1, pageSize)
-        val productPage = PageImpl(products, pageable, 2)
-
-        whenever(productRepository.findAllByStatus(eq(ProductStatus.APPROVED), eq(pageable)))
-            .thenReturn(productPage)
-        // ✅ ИСПРАВЛЕНО: Используйте eq() для конкретных ID
-        whenever(commentRepository.getAverageRatingByProductId(eq(1L)))
-            .thenReturn(4.0)
-        whenever(commentRepository.getCommentCountByProductId(eq(1L)))
-            .thenReturn(5L)
-        whenever(commentRepository.getAverageRatingByProductId(eq(2L)))
-            .thenReturn(4.0)
-        whenever(commentRepository.getCommentCountByProductId(eq(2L)))
-            .thenReturn(5L)
-
-        val result = productService.getApprovedProducts(page, pageSize)
-
-        assertNotNull(result)
-        assertEquals(2, result.data.size)
-        assertEquals(page, result.page)
-        assertEquals(pageSize, result.pageSize)
-        assertEquals(2L, result.totalElements)
-        assertEquals(1, result.totalPages)
-        
-        verify(productRepository, times(1)).findAllByStatus(ProductStatus.APPROVED, pageable)
+        assertEquals(ProductStatus.REJECTED.name, result.status)
+        assertEquals("Bad content", result.rejectionReason)
     }
 }

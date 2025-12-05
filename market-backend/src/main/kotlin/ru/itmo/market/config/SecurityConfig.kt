@@ -1,22 +1,13 @@
 package ru.itmo.market.config
 
-import io.jsonwebtoken.SignatureAlgorithm
-import io.jsonwebtoken.security.Keys
-import org.springframework.boot.context.properties.ConfigurationProperties
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder
-import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.web.cors.CorsConfiguration
 import org.springframework.web.cors.CorsConfigurationSource
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource
-import javax.crypto.SecretKey
 
 @Configuration
 class SecurityConfig {
-
-    @Bean
-    fun passwordEncoder(): PasswordEncoder = BCryptPasswordEncoder()
 
     @Bean
     fun corsConfigurationSource(): CorsConfigurationSource {
@@ -34,11 +25,5 @@ class SecurityConfig {
         return UrlBasedCorsConfigurationSource().apply {
             registerCorsConfiguration("/**", configuration)
         }
-    }
-
-    @Bean
-    fun jwtSecretKey(): SecretKey {
-        val secret = System.getenv("JWT_SECRET") ?: "your-super-secret-key-change-in-production-min-256-bits-example-here-1234567890"
-        return Keys.hmacShaKeyFor(secret.toByteArray())
     }
 }

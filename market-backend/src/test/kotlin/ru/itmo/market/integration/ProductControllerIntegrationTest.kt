@@ -8,6 +8,8 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.http.MediaType
+// ✅ ИМПОРТ user() для MockMvc
+import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.get
@@ -315,7 +317,7 @@ class ProductControllerIntegrationTest {
     @Test
     fun `should create product successfully`() {
         val seller = testAuthHelper.createTestUser(username = "seller", email = "seller@example.com", roles = setOf(UserRole.SELLER))
-        val token = testAuthHelper.createTokenForUser(seller)
+        // ❌ TOKEN удален
         val shop = shopRepository.save(
             Shop(
                 name = "Test Shop",
@@ -334,7 +336,8 @@ class ProductControllerIntegrationTest {
         )
 
         mockMvc.post("/api/products") {
-            header("Authorization", "Bearer $token")
+            // ✅ ЗАМЕНА
+            with(user(seller.username).roles(*seller.roles.map { it.name }.toTypedArray()))
             contentType = MediaType.APPLICATION_JSON
             content = objectMapper.writeValueAsString(createRequest)
         }.andExpect {
@@ -348,7 +351,7 @@ class ProductControllerIntegrationTest {
     @Test
     fun `should return 400 for empty product name`() {
         val seller = testAuthHelper.createTestUser(username = "seller", email = "seller@example.com", roles = setOf(UserRole.SELLER))
-        val token = testAuthHelper.createTokenForUser(seller)
+        // ❌ TOKEN удален
         val shop = shopRepository.save(
             Shop(
                 name = "Test Shop",
@@ -367,7 +370,8 @@ class ProductControllerIntegrationTest {
         )
 
         mockMvc.post("/api/products") {
-            header("Authorization", "Bearer $token")
+            // ✅ ЗАМЕНА
+            with(user(seller.username).roles(*seller.roles.map { it.name }.toTypedArray()))
             contentType = MediaType.APPLICATION_JSON
             content = objectMapper.writeValueAsString(createRequest)
         }.andExpect {
@@ -378,7 +382,7 @@ class ProductControllerIntegrationTest {
     @Test // In ProductController and further there's no check for shops existence!
     fun `should return 404 when shop not found`() {
         val seller = testAuthHelper.createTestUser(username = "seller", email = "seller@example.com", roles = setOf(UserRole.SELLER))
-        val token = testAuthHelper.createTokenForUser(seller)
+        // ❌ TOKEN удален
 
         val createRequest = CreateProductRequest(
             name = "New Product",
@@ -389,7 +393,8 @@ class ProductControllerIntegrationTest {
         )
 
         mockMvc.post("/api/products") {
-            header("Authorization", "Bearer $token")
+            // ✅ ЗАМЕНА
+            with(user(seller.username).roles(*seller.roles.map { it.name }.toTypedArray()))
             contentType = MediaType.APPLICATION_JSON
             content = objectMapper.writeValueAsString(createRequest)
         }.andExpect {
@@ -420,7 +425,7 @@ class ProductControllerIntegrationTest {
     @Test
     fun `should update product successfully`() {
         val seller = testAuthHelper.createTestUser(username = "seller", email = "seller@example.com", roles = setOf(UserRole.SELLER))
-        val token = testAuthHelper.createTokenForUser(seller)
+        // ❌ TOKEN удален
         val shop = shopRepository.save(
             Shop(
                 name = "Test Shop",
@@ -449,7 +454,8 @@ class ProductControllerIntegrationTest {
         )
 
         mockMvc.put("/api/products/${product.id}") {
-            header("Authorization", "Bearer $token")
+            // ✅ ЗАМЕНА
+            with(user(seller.username).roles(*seller.roles.map { it.name }.toTypedArray()))
             contentType = MediaType.APPLICATION_JSON
             content = objectMapper.writeValueAsString(updateRequest)
         }.andExpect {
@@ -464,7 +470,7 @@ class ProductControllerIntegrationTest {
     fun `should return 403 when updating other user product`() {
         val seller1 = testAuthHelper.createTestUser(username = "seller1", email = "seller1@example.com", roles = setOf(UserRole.SELLER))
         val seller2 = testAuthHelper.createTestUser(username = "seller2", email = "seller2@example.com", roles = setOf(UserRole.SELLER))
-        val token2 = testAuthHelper.createTokenForUser(seller2)
+        // ❌ TOKEN удален
 
         val shop = shopRepository.save(
             Shop(
@@ -494,7 +500,8 @@ class ProductControllerIntegrationTest {
         )
 
         mockMvc.put("/api/products/${product.id}") {
-            header("Authorization", "Bearer $token2")
+            // ✅ ЗАМЕНА: используем seller2 для запроса
+            with(user(seller2.username).roles(*seller2.roles.map { it.name }.toTypedArray()))
             contentType = MediaType.APPLICATION_JSON
             content = objectMapper.writeValueAsString(updateRequest)
         }.andExpect {
@@ -505,7 +512,7 @@ class ProductControllerIntegrationTest {
     @Test
     fun `should return 404 when updating non-existent product`() {
         val seller = testAuthHelper.createTestUser(username = "seller", email = "seller@example.com", roles = setOf(UserRole.SELLER))
-        val token = testAuthHelper.createTokenForUser(seller)
+        // ❌ TOKEN удален
 
         val updateRequest = UpdateProductRequest(
             name = "Updated Product",
@@ -515,7 +522,8 @@ class ProductControllerIntegrationTest {
         )
 
         mockMvc.put("/api/products/99999") {
-            header("Authorization", "Bearer $token")
+            // ✅ ЗАМЕНА
+            with(user(seller.username).roles(*seller.roles.map { it.name }.toTypedArray()))
             contentType = MediaType.APPLICATION_JSON
             content = objectMapper.writeValueAsString(updateRequest)
         }.andExpect {
@@ -528,7 +536,7 @@ class ProductControllerIntegrationTest {
     @Test
     fun `should delete product successfully`() {
         val seller = testAuthHelper.createTestUser(username = "seller", email = "seller@example.com", roles = setOf(UserRole.SELLER))
-        val token = testAuthHelper.createTokenForUser(seller)
+        // ❌ TOKEN удален
         val shop = shopRepository.save(
             Shop(
                 name = "Test Shop",
@@ -550,7 +558,8 @@ class ProductControllerIntegrationTest {
         )
 
         mockMvc.delete("/api/products/${product.id}") {
-            header("Authorization", "Bearer $token")
+            // ✅ ЗАМЕНА
+            with(user(seller.username).roles(*seller.roles.map { it.name }.toTypedArray()))
         }.andExpect {
             status { isNoContent() }
         }
@@ -564,7 +573,7 @@ class ProductControllerIntegrationTest {
     fun `should return 403 when deleting other user product`() {
         val seller1 = testAuthHelper.createTestUser(username = "seller1", email = "seller1@example.com", roles = setOf(UserRole.SELLER))
         val seller2 = testAuthHelper.createTestUser(username = "seller2", email = "seller2@example.com", roles = setOf(UserRole.SELLER))
-        val token2 = testAuthHelper.createTokenForUser(seller2)
+        // ❌ TOKEN удален
 
         val shop = shopRepository.save(
             Shop(
@@ -587,7 +596,8 @@ class ProductControllerIntegrationTest {
         )
 
         mockMvc.delete("/api/products/${product.id}") {
-            header("Authorization", "Bearer $token2")
+            // ✅ ЗАМЕНА: используем seller2 для запроса
+            with(user(seller2.username).roles(*seller2.roles.map { it.name }.toTypedArray()))
         }.andExpect {
             status { isForbidden() }
         }
@@ -596,10 +606,11 @@ class ProductControllerIntegrationTest {
     @Test
     fun `should return 404 when deleting non-existent product`() {
         val seller = testAuthHelper.createTestUser(username = "seller", email = "seller@example.com", roles = setOf(UserRole.SELLER))
-        val token = testAuthHelper.createTokenForUser(seller)
+        // ❌ TOKEN удален
 
         mockMvc.delete("/api/products/99999") {
-            header("Authorization", "Bearer $token")
+            // ✅ ЗАМЕНА
+            with(user(seller.username).roles(*seller.roles.map { it.name }.toTypedArray()))
         }.andExpect {
             status { isNotFound() }
         }
