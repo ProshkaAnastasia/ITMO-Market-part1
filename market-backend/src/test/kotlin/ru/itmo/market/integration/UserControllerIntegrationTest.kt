@@ -132,7 +132,6 @@ class UserControllerIntegrationTest {
     }
 
     @Test
-    @Disabled 
     fun `should return 409 when email already in use`() {
         val user1 = testAuthHelper.createTestUser(username = "user1", email = "user1@example.com")
         val user2 = testAuthHelper.createTestUser(username = "user2", email = "user2@example.com")

@@ -3,6 +3,7 @@ package ru.itmo.market.service
 import org.springframework.data.domain.PageRequest
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import ru.itmo.market.exception.ConflictException
 import ru.itmo.market.exception.ForbiddenException
 import ru.itmo.market.exception.ResourceNotFoundException
 import ru.itmo.market.model.dto.response.UserResponse
@@ -37,6 +38,12 @@ class UserService(
     fun updateProfile(userId: Long, email: String?, firstName: String?, lastName: String?): UserResponse {
         val user = userRepository.findById(userId)
             .orElseThrow { ResourceNotFoundException("Пользователь не найден") }
+
+        email?.takeIf { it != user.email }?.let { newEmail ->
+            if (userRepository.existsByEmail(newEmail)) {
+                throw ConflictException("Email $newEmail уже используется другим пользователем")
+            }
+        }
 
         val updatedUser = user.copy(
             email = email ?: user.email,
