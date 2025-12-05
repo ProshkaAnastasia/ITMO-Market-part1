@@ -1,32 +1,29 @@
-package ru.itmo.market.integration 
-import com.fasterxml.jackson.databind.ObjectMapper 
-import org.junit.jupiter.api.BeforeEach 
-import org.junit.jupiter.api.Test 
-import org.junit.jupiter.api.DisplayName 
-import org.mockito.kotlin.eq 
-import org.mockito.kotlin.whenever 
-import org.springframework.beans.factory.annotation.Autowired 
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc 
-import org.springframework.boot.test.context.SpringBootTest 
-import org.springframework.http.MediaType 
-import org.springframework.test.context.ActiveProfiles 
-import org.springframework.test.web.servlet.MockMvc 
-import org.springframework.test.web.servlet.get 
-import org.springframework.test.web.servlet.post 
-import org.testcontainers.junit.jupiter.Container 
-import org.testcontainers.junit.jupiter.Testcontainers 
-import org.testcontainers.containers.PostgreSQLContainer 
-import ru.itmo.market.model.entity.Product 
-import ru.itmo.market.model.entity.User 
-import ru.itmo.market.model.entity.Shop 
-import ru.itmo.market.model.enums.UserRole 
-import ru.itmo.market.repository.* 
-import java.math.BigDecimal 
+package ru.itmo.market.integration
+
+import com.fasterxml.jackson.databind.ObjectMapper
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.DisplayName
+import org.mockito.kotlin.eq
+import org.mockito.kotlin.whenever
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
+import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.http.MediaType
+import org.springframework.test.context.ActiveProfiles
+import org.springframework.test.web.servlet.MockMvc
+import org.springframework.test.web.servlet.get
+import org.springframework.test.web.servlet.post
+import org.testcontainers.junit.jupiter.Container
+import org.testcontainers.junit.jupiter.Testcontainers
+import org.testcontainers.containers.PostgreSQLContainer
+import ru.itmo.market.model.entity.Product
+import ru.itmo.market.model.entity.User
+import ru.itmo.market.model.entity.Shop
+import ru.itmo.market.model.enums.UserRole
+import ru.itmo.market.repository.*
+import java.math.BigDecimal
 import java.util.*
-
-import org.springframework.test.context.DynamicPropertySource
-import org.springframework.test.context.DynamicPropertyRegistry
-
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -42,22 +39,28 @@ class CommentControllerIntegrationTest {
             withUsername("itmo_user")
             withPassword("itmo_password")
         }
-
-        @JvmStatic
-        @DynamicPropertySource
-        fun configureDataSource(registry: DynamicPropertyRegistry) {
-            registry.add("spring.datasource.url", postgres::getJdbcUrl)
-            registry.add("spring.datasource.username", postgres::getUsername)
-            registry.add("spring.datasource.password", postgres::getPassword)
-            registry.add("spring.jpa.hibernate.ddl-auto") { "update" }
-        }
     }
 
-    @Autowired lateinit var mockMvc: MockMvc
-    @Autowired lateinit var commentRepository: CommentRepository
-    @Autowired lateinit var productRepository: ProductRepository
-    @Autowired lateinit var shopRepository: ShopRepository
-    @Autowired lateinit var userRepository: UserRepository
+    @Autowired
+    private lateinit var mockMvc: MockMvc
+
+    @Autowired
+    private lateinit var objectMapper: ObjectMapper
+
+    @Autowired
+    private lateinit var commentRepository: CommentRepository
+
+    @Autowired
+    private lateinit var productRepository: ProductRepository
+
+    @Autowired
+    private lateinit var shopRepository: ShopRepository
+
+    @Autowired
+    private lateinit var userRepository: UserRepository
+
+    @Autowired
+    private lateinit var testAuthHelper: TestAuthHelper
 
     @BeforeEach
     fun setUp() {
@@ -103,6 +106,7 @@ class CommentControllerIntegrationTest {
             param("pageSize", "20")
         }.andExpect {
             status { isOk() }
+            jsonPath("$.data") { isArray() }
             jsonPath("$.page") { value(1) }
             jsonPath("$.pageSize") { value(20) }
         }

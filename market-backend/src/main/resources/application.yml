@@ -37,6 +37,10 @@ spring:
     schemas: public
     out-of-order: false
   
+  security:
+    filter:
+      order: 5
+  
   servlet:
     multipart:
       max-file-size: 10MB
@@ -53,11 +57,17 @@ server:
     include-message: always
     include-binding-errors: always
 
+jwt:
+  secret: ${JWT_SECRET:your-super-secret-key-change-in-production-min-256-bits-example-here-1234567890}
+  access-token-expiration: ${JWT_ACCESS_TOKEN_EXPIRATION:900000}
+  refresh-token-expiration: ${JWT_REFRESH_TOKEN_EXPIRATION:604800000}
+
 
 logging:
   level:
     root: WARN          # ← Все DEBUG
     ru.itmo.market: INFO
+    org.springframework.security: WARN
     org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping: WARN
     org.hibernate.SQL: DEBUG
   pattern:

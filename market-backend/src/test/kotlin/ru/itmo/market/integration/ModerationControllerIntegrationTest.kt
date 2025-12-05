@@ -7,16 +7,19 @@ import org.junit.jupiter.api.DisplayName
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
 import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.security.test.context.support.WithMockUser // ✅ FIX: Необходимый импорт для мокирования пользователя
+import org.springframework.http.MediaType
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.get
+import org.springframework.test.web.servlet.post
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
 import org.testcontainers.containers.PostgreSQLContainer
 import ru.itmo.market.repository.*
-// import ru.itmo.market.model.enums.UserRole // Больше не нужен
-// import ru.itmo.market.security.jwt.JwtTokenProvider // ❌ УДАЛЕН
+import ru.itmo.market.model.dto.request.RejectProductRequest
+import ru.itmo.market.model.entity.User
+import ru.itmo.market.model.enums.UserRole
+import ru.itmo.market.security.jwt.JwtTokenProvider
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -49,13 +52,11 @@ class ModerationControllerIntegrationTest {
     @Autowired
     private lateinit var userRepository: UserRepository
 
-    // ❌ УДАЛЕНО, так как JWT удален
-    // @Autowired
-    // private lateinit var testAuthHelper: TestAuthHelper
+    @Autowired
+    private lateinit var testAuthHelper: TestAuthHelper
 
-    // ❌ УДАЛЕНО, так как JWT удален
-    // @Autowired
-    // private lateinit var jwtTokenProvider: JwtTokenProvider
+    @Autowired
+    private lateinit var jwtTokenProvider: JwtTokenProvider
 
     @BeforeEach
     fun setUp() {
@@ -66,12 +67,12 @@ class ModerationControllerIntegrationTest {
 
     @Test
     @DisplayName("should get pending products for moderator")
-    @WithMockUser(username = "moderator", roles = ["MODERATOR"]) // ✅ Имитируем запрос от аутентифицированного модератора
     fun testGetPendingProducts() {
-        // Убрана вся логика создания пользователя и токена
+        val moderator = testAuthHelper.createTestUser(username = "moderator", roles = setOf(UserRole.MODERATOR))
+        val token = testAuthHelper.createTokenForUser(moderator)
 
         mockMvc.get("/api/moderation/products") {
-            // Убран заголовок Authorization
+            header("Authorization", "Bearer $token")
             param("page", "1")
             param("pageSize", "20")
         }.andExpect {
@@ -84,17 +85,16 @@ class ModerationControllerIntegrationTest {
 
     @Test
     @DisplayName("should reject moderation endpoint for non-moderator")
-    @WithMockUser(username = "user", roles = ["USER"]) // ✅ Имитируем запрос от обычного пользователя
     fun testGetPendingProductsWithoutModeratorRole() {
-        // Убрана вся логика создания пользователя и токена
+        val user = testAuthHelper.createTestUser()
+        val token = testAuthHelper.createTokenForUser(user)
 
         mockMvc.get("/api/moderation/products") {
-            // Убран заголовок Authorization
+            header("Authorization", "Bearer $token")
             param("page", "1")
             param("pageSize", "20")
         }.andExpect {
-            // Ожидаем 403 Forbidden, так как нет роли MODERATOR
-            status { isForbidden() } 
+            status { isForbidden() }
         }
     }
 }

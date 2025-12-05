@@ -18,7 +18,17 @@ class OpenApiConfig {
                 description = "REST API для маркетплейса ITMO-Market"
                 version = "1.0.0"
             }
-            components = io.swagger.v3.oas.models.Components()
+            addSecurityItem(SecurityRequirement().addList("bearer-jwt"))
+            components = io.swagger.v3.oas.models.Components() 
+            components.addSecuritySchemes(
+                "bearer-jwt",
+                SecurityScheme().apply {
+                    type = SecurityScheme.Type.HTTP
+                    scheme = "bearer"
+                    bearerFormat = "JWT"
+                    description = "JWT Authentication Token"
+                }
+            )
         }
     }
 

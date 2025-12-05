@@ -7,10 +7,12 @@ import io.swagger.v3.oas.annotations.media.Content
 import io.swagger.v3.oas.annotations.media.Schema
 import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.responses.ApiResponses
+import io.swagger.v3.oas.annotations.security.SecurityRequirement
 import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.validation.Valid
-import jakarta.validation.constraints.Min
+import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
+import org.springframework.security.core.Authentication
 import org.springframework.web.bind.annotation.*
 import ru.itmo.market.model.dto.request.*
 import ru.itmo.market.model.dto.response.*
@@ -28,7 +30,8 @@ class CartController(
     @GetMapping
     @Operation(
         summary = "Получить текущую корзину",
-        description = "Возвращает содержимое корзины пользователя со всеми товарами и ценами"
+        description = "Возвращает содержимое корзины авторизованного пользователя со всеми товарами и ценами",
+        security = [SecurityRequirement(name = "bearer-jwt")]
     )
     @ApiResponses(
         value = [
@@ -38,8 +41,8 @@ class CartController(
                 content = [Content(schema = Schema(implementation = OrderResponse::class))]
             ),
             ApiResponse(
-                responseCode = "400",
-                description = "BadRequestException: некорректный userId"
+                responseCode = "401",
+                description = "UnauthorizedException: не авторизован"
             ),
             ApiResponse(
                 responseCode = "404",
@@ -51,11 +54,8 @@ class CartController(
             )
         ]
     )
-    fun getCart(@RequestParam
-                @Parameter(description = "ID пользователя", example = "1")
-                @Min(1, message = "userId должен быть больше 0")
-                userId: Long
-    ): ResponseEntity<OrderResponse> {
+    fun getCart(authentication: Authentication): ResponseEntity<OrderResponse> {
+        val userId = authentication.principal as Long
         return ResponseEntity.ok(orderService.getCart(userId))
     }
 
@@ -63,7 +63,8 @@ class CartController(
     @PostMapping("/items")
     @Operation(
         summary = "Добавить товар в корзину",
-        description = "Добавляет товар в корзину пользователя. Если товар уже в корзине, увеличивает количество"
+        description = "Добавляет товар в корзину авторизованного пользователя. Если товар уже в корзине, увеличивает количество",
+        security = [SecurityRequirement(name = "bearer-jwt")]
     )
     @ApiResponses(
         value = [
@@ -77,6 +78,10 @@ class CartController(
                 description = "BadRequestException: некорректное количество или ID товара"
             ),
             ApiResponse(
+                responseCode = "401",
+                description = "UnauthorizedException: не авторизован"
+            ),
+            ApiResponse(
                 responseCode = "404",
                 description = "ResourceNotFoundException: товар или корзина не найдена"
             ),
@@ -87,14 +92,10 @@ class CartController(
         ]
     )
     fun addToCart(
-        @RequestParam
-        @Parameter(description = "ID пользователя", example = "1")
-        @Min(1, message = "userId должен быть больше 0")
-        userId: Long,
-        @Valid
-        @RequestBody
-        request: AddToCartRequest
+        authentication: Authentication,
+        @Valid @RequestBody request: AddToCartRequest
     ): ResponseEntity<OrderResponse> {
+        val userId = authentication.principal as Long
         return ResponseEntity.ok(orderService.addToCart(userId, request.productId, request.quantity))
     }
 
@@ -102,7 +103,8 @@ class CartController(
     @PutMapping("/items/{itemId}")
     @Operation(
         summary = "Изменить количество товара в корзине",
-        description = "Обновляет количество единиц товара в корзине. Количество должно быть больше 0"
+        description = "Обновляет количество единиц товара в корзине. Количество должно быть больше 0",
+        security = [SecurityRequirement(name = "bearer-jwt")]
     )
     @ApiResponses(
         value = [
@@ -113,7 +115,11 @@ class CartController(
             ),
             ApiResponse(
                 responseCode = "400",
-                description = "BadRequestException: некорректное количество/некорректный itemId/некорректный userId"
+                description = "BadRequestException: некорректное количество"
+            ),
+            ApiResponse(
+                responseCode = "401",
+                description = "UnauthorizedException: не авторизован"
             ),
             ApiResponse(
                 responseCode = "404",
@@ -126,16 +132,13 @@ class CartController(
         ]
     )
     fun updateCartItem(
+        authentication: Authentication,
         @PathVariable
         @Parameter(description = "ID товара в корзине", example = "1")
-        @Min(1, message = "itemId должен быть больше 0")
         itemId: Long,
-        @RequestParam
-        @Parameter(description = "ID пользователя", example = "1")
-        @Min(1, message = "userId должен быть больше 0")
-        userId: Long,
         @RequestBody request: UpdateQuantityRequest
     ): ResponseEntity<OrderResponse> {
+        val userId = authentication.principal as Long
         return ResponseEntity.ok(orderService.updateCartItemQuantity(userId, itemId, request.quantity))
     }
 
@@ -143,7 +146,8 @@ class CartController(
     @DeleteMapping("/items/{itemId}")
     @Operation(
         summary = "Удалить товар из корзины",
-        description = "Полностью удаляет товар из корзины пользователя"
+        description = "Полностью удаляет товар из корзины авторизованного пользователя",
+        security = [SecurityRequirement(name = "bearer-jwt")]
     )
     @ApiResponses(
         value = [
@@ -153,8 +157,8 @@ class CartController(
                 content = [Content(schema = Schema(implementation = OrderResponse::class))]
             ),
             ApiResponse(
-                responseCode = "400",
-                description = "BadRequestException: некорректный itemId/некорректный userId"
+                responseCode = "401",
+                description = "UnauthorizedException: не авторизован"
             ),
             ApiResponse(
                 responseCode = "404",
@@ -167,15 +171,12 @@ class CartController(
         ]
     )
     fun removeFromCart(
-        @RequestParam
-        @Parameter(description = "ID пользователя", example = "1")
-        @Min(1, message = "userId должен быть больше 0")
-        userId: Long,
+        authentication: Authentication,
         @PathVariable
         @Parameter(description = "ID товара в корзине", example = "1")
-        @Min(1, message = "itemId должен быть больше 0")
         itemId: Long
     ): ResponseEntity<OrderResponse> {
+        val userId = authentication.principal as Long
         return ResponseEntity.ok(orderService.removeFromCart(userId, itemId))
     }
 
@@ -183,7 +184,8 @@ class CartController(
     @DeleteMapping
     @Operation(
         summary = "Полностью очистить корзину",
-        description = "Удаляет все товары из корзины пользователя"
+        description = "Удаляет ВСЕ товары из корзины авторизованного пользователя",
+        security = [SecurityRequirement(name = "bearer-jwt")]
     )
     @ApiResponses(
         value = [
@@ -192,8 +194,8 @@ class CartController(
                 description = "Корзина успешно очищена"
             ),
             ApiResponse(
-                responseCode = "400",
-                description = "BadRequestException: некорректный userId"
+                responseCode = "401",
+                description = "UnauthorizedException: не авторизован"
             ),
             ApiResponse(
                 responseCode = "404",
@@ -205,12 +207,8 @@ class CartController(
             )
         ]
     )
-    fun clearCart(
-        @RequestParam
-        @Parameter(description = "ID пользователя", example = "1")
-        @Min(1, message = "userId должен быть больше 0")
-        userId: Long
-    ): ResponseEntity<Unit> {
+    fun clearCart(authentication: Authentication): ResponseEntity<Unit> {
+        val userId = authentication.principal as Long
         orderService.clearCart(userId)
         return ResponseEntity.noContent().build()
     }

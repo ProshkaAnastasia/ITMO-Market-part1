@@ -7,17 +7,21 @@ import io.swagger.v3.oas.annotations.media.Content
 import io.swagger.v3.oas.annotations.media.Schema
 import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.responses.ApiResponses
+import io.swagger.v3.oas.annotations.security.SecurityRequirement
 import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.validation.Valid
-import jakarta.validation.constraints.Min
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
+import org.springframework.security.core.Authentication
 import org.springframework.web.bind.annotation.*
 import ru.itmo.market.model.dto.request.CreateCommentRequest
 import ru.itmo.market.model.dto.request.UpdateCommentRequest
+import ru.itmo.market.model.dto.request.RejectProductRequest
 import ru.itmo.market.model.dto.response.CommentResponse
+import ru.itmo.market.model.dto.response.ProductResponse
 import ru.itmo.market.model.dto.response.PaginatedResponse
 import ru.itmo.market.service.CommentService
+import ru.itmo.market.service.ModerationService
 
 
 @RestController
@@ -57,15 +61,12 @@ class CommentController(
     fun getProductComments(
         @PathVariable
         @Parameter(description = "ID товара", example = "1")
-        @Min(1, message = "productId должен быть больше 0")
         productId: Long,
         @RequestParam(defaultValue = "1")
         @Parameter(description = "Номер страницы (начиная с 1)", example = "1")
-        @Min(1, message = "page должен быть больше 0")
         page: Int,
         @RequestParam(defaultValue = "20")
         @Parameter(description = "Количество комментариев на странице", example = "20")
-        @Min(1, message = "pageSize должен быть больше 0")
         pageSize: Int
     ): ResponseEntity<PaginatedResponse<CommentResponse>> {
         return ResponseEntity.ok(commentService.getProductComments(productId, page, pageSize))
@@ -75,7 +76,8 @@ class CommentController(
     @PostMapping
     @Operation(
         summary = "Добавить комментарий к товару",
-        description = "Создает новый комментарий/отзыв на товар. Один комментарий на пользователя на товар. Рейтинг от 1 до 5 звезд"
+        description = "Создает новый комментарий/отзыв на товар. Один комментарий на пользователя на товар. Рейтинг от 1 до 5 звезд",
+        security = [SecurityRequirement(name = "bearer-jwt")]
     )
     @ApiResponses(
         value = [
@@ -86,7 +88,11 @@ class CommentController(
             ),
             ApiResponse(
                 responseCode = "400",
-                description = "BadRequestException: некорректный рейтинг (должен быть 1-5)/пустой текст/некорректный userId"
+                description = "BadRequestException: некорректный рейтинг (должен быть 1-5) или пустой текст"
+            ),
+            ApiResponse(
+                responseCode = "401",
+                description = "UnauthorizedException: не авторизован"
             ),
             ApiResponse(
                 responseCode = "404",
@@ -103,16 +109,13 @@ class CommentController(
         ]
     )
     fun createComment(
+        authentication: Authentication,
         @PathVariable
         @Parameter(description = "ID товара", example = "1")
-        @Min(1, message = "productId должен быть больше 0")
         productId: Long,
-        @RequestParam
-        @Parameter(description = "ID пользователя", example = "1")
-        @Min(1, message = "userId должен быть больше 0")
-        userId: Long,
         @Valid @RequestBody request: CreateCommentRequest
     ): ResponseEntity<CommentResponse> {
+        val userId = authentication.principal as Long
         return ResponseEntity.status(HttpStatus.CREATED).body(
             commentService.createComment(productId, userId, request.text, request.rating)
         )
@@ -123,6 +126,7 @@ class CommentController(
     @Operation(
         summary = "Обновить собственный комментарий",
         description = "Редактирует текст и рейтинг собственного комментария. Может редактировать только автор комментария",
+        security = [SecurityRequirement(name = "bearer-jwt")]
     )
     @ApiResponses(
         value = [
@@ -133,7 +137,11 @@ class CommentController(
             ),
             ApiResponse(
                 responseCode = "400",
-                description = "BadRequestException: некорректный рейтинг (должен быть 1-5)/пустой текст/некорректный userId"
+                description = "BadRequestException: некорректный рейтинг (должен быть 1-5) или пустой текст"
+            ),
+            ApiResponse(
+                responseCode = "401",
+                description = "UnauthorizedException: не авторизован"
             ),
             ApiResponse(
                 responseCode = "403",
@@ -150,20 +158,16 @@ class CommentController(
         ]
     )
     fun updateComment(
+        authentication: Authentication,
         @PathVariable
         @Parameter(description = "ID товара", example = "1")
-        @Min(1, message = "productId должен быть больше 0")
         productId: Long,
         @PathVariable
         @Parameter(description = "ID комментария для редактирования", example = "1")
-        @Min(1, message = "commentId должен быть больше 0")
         commentId: Long,
-        @RequestParam
-        @Parameter(description = "ID пользователя", example = "1")
-        @Min(1, message = "userId должен быть больше 0")
-        userId: Long,
         @Valid @RequestBody request: UpdateCommentRequest
     ): ResponseEntity<CommentResponse> {
+        val userId = authentication.principal as Long
         return ResponseEntity.ok(
             commentService.updateComment(productId, commentId, userId, request.text, request.rating)
         )
@@ -173,7 +177,8 @@ class CommentController(
     @DeleteMapping("/{commentId}")
     @Operation(
         summary = "Удалить комментарий",
-        description = "Полностью удаляет комментарий. Может удалять только автор комментария или модератор"
+        description = "Полностью удаляет комментарий. Может удалять только автор комментария или модератор",
+        security = [SecurityRequirement(name = "bearer-jwt")]
     )
     @ApiResponses(
         value = [
@@ -182,8 +187,8 @@ class CommentController(
                 description = "Комментарий успешно удален"
             ),
             ApiResponse(
-                responseCode = "400",
-                description = "BadRequestException: некорректный userId"
+                responseCode = "401",
+                description = "UnauthorizedException: не авторизован"
             ),
             ApiResponse(
                 responseCode = "403",
@@ -200,19 +205,15 @@ class CommentController(
         ]
     )
     fun deleteComment(
+        authentication: Authentication,
         @PathVariable
         @Parameter(description = "ID товара", example = "1")
-        @Min(1, message = "productId должен быть больше 0")
         productId: Long,
         @PathVariable
         @Parameter(description = "ID комментария для удаления", example = "1")
-        @Min(1, message = "commentId должен быть больше 0")
-        commentId: Long,
-        @RequestParam
-        @Parameter(description = "ID пользователя", example = "1")
-        @Min(1, message = "userId должен быть больше 0")
-        userId: Long
+        commentId: Long
     ): ResponseEntity<Unit> {
+        val userId = authentication.principal as Long
         commentService.deleteComment(productId, commentId, userId)
         return ResponseEntity.noContent().build()
     }
