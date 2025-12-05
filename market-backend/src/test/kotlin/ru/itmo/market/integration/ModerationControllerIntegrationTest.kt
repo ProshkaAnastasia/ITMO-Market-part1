@@ -84,7 +84,6 @@ class ModerationControllerIntegrationTest {
             param("page", "1")
             param("pageSize", "20")
         }.andExpect {
-            // Ожидаем 403 Forbidden, так как нет роли MODERATOR
             status { isForbidden() } 
         }
     }

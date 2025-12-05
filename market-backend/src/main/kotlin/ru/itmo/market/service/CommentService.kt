@@ -19,7 +19,7 @@ class CommentService(
 ) {
 
     fun getProductComments(productId: Long, page: Int, pageSize: Int): PaginatedResponse<CommentResponse> {
-        // Decoupled: Check existence via ProductService
+        
         if (!productService.existsById(productId)) {
             throw ResourceNotFoundException("Товар с ID $productId не найден")
         }
@@ -28,14 +28,14 @@ class CommentService(
         val commentPage = commentRepository.findAllByProductId(productId, pageable)
         return PaginatedResponse(
             data = commentPage.content.map { comment ->
-                // Decoupled: Get user info via UserService
+                
                 val user = userService.getUserById(comment.userId)
                 
                 CommentResponse(
                     id = comment.id,
                     productId = comment.productId,
                     userId = comment.userId,
-                    userName = user.username, // Assuming username or firstName+lastName is available in UserResponse
+                    userName = user.username, 
                     text = comment.text,
                     rating = comment.rating,
                     createdAt = comment.createdAt,
@@ -120,7 +120,7 @@ class CommentService(
         commentRepository.deleteById(commentId)
     }
 
-    // Methods exposed for ProductService
+    
     fun getAverageRatingByProductId(productId: Long): Double? {
         return commentRepository.getAverageRatingByProductId(productId)
     }

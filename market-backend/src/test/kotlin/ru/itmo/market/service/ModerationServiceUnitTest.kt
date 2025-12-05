@@ -16,9 +16,6 @@ import ru.itmo.market.model.dto.response.ProductResponse
 import ru.itmo.market.model.dto.response.UserResponse
 import ru.itmo.market.model.entity.Product
 import ru.itmo.market.model.enums.ProductStatus
-// УДАЛЕНЫ НЕНУЖНЫЕ ИМПОРТЫ РЕПОЗИТОРИЕВ
-// import ru.itmo.market.repository.CommentRepository 
-// import ru.itmo.market.repository.ProductRepository
 import java.math.BigDecimal
 import java.time.LocalDateTime
 import java.util.*
@@ -26,7 +23,7 @@ import java.util.*
 @ExtendWith(MockitoExtension::class)
 class ModerationServiceUnitTest {
 
-    // ✅ FIX: Мокируем сервисы, которые ModerationService использует
+    
     @Mock
     private lateinit var productService: ProductService
 
@@ -38,7 +35,7 @@ class ModerationServiceUnitTest {
 
     private lateinit var moderationService: ModerationService
 
-    // Test Data Constants
+    
     private val PRODUCT_ID = 100L
     private val MODERATOR_ID = 50L
     private val REJECT_REASON = "Violation of rules"
@@ -56,7 +53,7 @@ class ModerationServiceUnitTest {
 
     }
 
-    // Хелпер для создания фейкового DTO, которое возвращает ProductService
+    
     private fun createProductResponse(status: ProductStatus, rejectionReason: String? = null): ProductResponse {
         return ProductResponse(
             id = PRODUCT_ID,
@@ -68,37 +65,37 @@ class ModerationServiceUnitTest {
             sellerId = SELLER_ID,
             status = status.name,
             rejectionReason = rejectionReason,
-            averageRating = 4.5, // Фейковые данные
-            commentsCount = 12L, // Фейковые данные
+            averageRating = 4.5, 
+            commentsCount = 12L, 
             createdAt = LocalDateTime.now(),
             updatedAt = LocalDateTime.now()
         )
     }
 
-    // ==========================================
-    // 1. Tests for approveProduct (Проверка делегирования)
-    // ==========================================
+    
+    
+    
 
     @Test
     fun `approveProduct should succeed and delegate to productService`() {
         val approvedResponse = createProductResponse(ProductStatus.APPROVED)
         
-        // ✅ FIX: Мокируем вызов productService
+        
         whenever(productService.approveProduct(eq(PRODUCT_ID), eq(MODERATOR_ID)))
             .thenReturn(approvedResponse)
 
         val result = moderationService.approveProduct(PRODUCT_ID, MODERATOR_ID)
 
-        // Assert Response
+        
         assertEquals(ProductStatus.APPROVED.name, result.status)
 
-        // Assert Delegation
+        
         verify(productService, times(1)).approveProduct(PRODUCT_ID, MODERATOR_ID)
     }
 
     @Test
     fun `approveProduct should throw exception when product not found (delegated)`() {
-        // ✅ FIX: Мокируем, что ProductService бросит исключение
+        
         whenever(productService.approveProduct(eq(PRODUCT_ID), eq(MODERATOR_ID)))
             .thenThrow(ResourceNotFoundException("Товар не найден"))
 
@@ -111,7 +108,7 @@ class ModerationServiceUnitTest {
 
     @Test
     fun `approveProduct should throw exception when status is not PENDING (delegated)`() {
-        // ✅ FIX: Мокируем, что ProductService бросит исключение
+        
         whenever(productService.approveProduct(eq(PRODUCT_ID), eq(MODERATOR_ID)))
             .thenThrow(IllegalStateException("Может быть одобрен только товар со статусом PENDING"))
 
@@ -123,15 +120,15 @@ class ModerationServiceUnitTest {
         verify(productService, times(1)).approveProduct(PRODUCT_ID, MODERATOR_ID)
     }
 
-    // ==========================================
-    // 2. Tests for rejectProduct (Проверка делегирования)
-    // ==========================================
+    
+    
+    
 
     @Test
     fun `rejectProduct should succeed and delegate to productService`() {
         val rejectedResponse = createProductResponse(ProductStatus.REJECTED, REJECT_REASON)
 
-        // ✅ FIX: Мокируем вызов productService
+        
         whenever(productService.rejectProduct(eq(PRODUCT_ID), eq(MODERATOR_ID), eq(REJECT_REASON)))
             .thenReturn(rejectedResponse)
 
@@ -145,7 +142,7 @@ class ModerationServiceUnitTest {
 
     @Test
     fun `rejectProduct should throw exception when status is not PENDING (delegated)`() {
-        // ✅ FIX: Мокируем, что ProductService бросит исключение
+        
         whenever(productService.rejectProduct(eq(PRODUCT_ID), eq(MODERATOR_ID), eq(REJECT_REASON)))
             .thenThrow(IllegalStateException("Может быть отклонен только товар со статусом PENDING"))
 
@@ -159,7 +156,7 @@ class ModerationServiceUnitTest {
 
     @Test
     fun `rejectProduct should throw exception when product not found (delegated)`() {
-        // ✅ FIX: Мокируем, что ProductService бросит исключение
+        
         whenever(productService.rejectProduct(eq(PRODUCT_ID), eq(MODERATOR_ID), eq(REJECT_REASON)))
             .thenThrow(ResourceNotFoundException("Товар не найден"))
 
@@ -169,9 +166,9 @@ class ModerationServiceUnitTest {
         verify(productService, times(1)).rejectProduct(PRODUCT_ID, MODERATOR_ID, REJECT_REASON)
     }
 
-    // ==========================================
-    // 3. Tests for getPendingProducts (Pagination)
-    // ==========================================
+    
+    
+    
 
     @Test
     fun `getPendingProducts should return populated page (delegated)`() {
@@ -187,7 +184,7 @@ class ModerationServiceUnitTest {
             totalPages = 1
         )
 
-        // ✅ FIX: Мокируем вызов productService
+        
         whenever(productService.getPendingProducts(eq(page), eq(pageSize)))
             .thenReturn(expectedResponse)
 
@@ -205,9 +202,9 @@ class ModerationServiceUnitTest {
         assertEquals(1, result.data.size)
         assertEquals(pendingResponse.averageRating, result.data[0].averageRating)
         
-        // Verify delegation
+        
         verify(productService, times(1)).getPendingProducts(page, pageSize)
-        // Не нужно проверять репозитории/commentService, это работа ProductService
+        
     }
 
     @Test
@@ -223,7 +220,7 @@ class ModerationServiceUnitTest {
             totalPages = 0
         )
         
-        // ✅ FIX: Мокируем вызов productService
+        
         whenever(productService.getPendingProducts(eq(page), eq(pageSize)))
             .thenReturn(emptyResponse)
 
@@ -242,15 +239,15 @@ class ModerationServiceUnitTest {
         verify(productService, times(1)).getPendingProducts(page, pageSize)
     }
 
-    // ==========================================
-    // 4. Tests for getPendingProductById
-    // ==========================================
+    
+    
+    
 
     @Test
     fun `getPendingProductById should return details when status is PENDING (delegated)`() {
         val pendingResponse = createProductResponse(ProductStatus.PENDING)
         
-        // ✅ FIX: Мокируем вызов productService
+        
         whenever(productService.getPendingProductById(eq(PRODUCT_ID)))
             .thenReturn(pendingResponse)
 
@@ -274,7 +271,7 @@ class ModerationServiceUnitTest {
 
     @Test
     fun `getPendingProductById should throw exception when status is NOT PENDING (delegated)`() {
-        // ✅ FIX: Мокируем, что ProductService бросит исключение
+        
         whenever(productService.getPendingProductById(eq(PRODUCT_ID)))
             .thenThrow(ResourceNotFoundException("Товар не на модерации"))
 
@@ -297,7 +294,7 @@ class ModerationServiceUnitTest {
 
     @Test
     fun `getPendingProductById should throw exception when not found (delegated)`() {
-        // ✅ FIX: Мокируем, что ProductService бросит исключение
+        
         whenever(productService.getPendingProductById(eq(PRODUCT_ID)))
             .thenThrow(ResourceNotFoundException("Товар не найден"))
 

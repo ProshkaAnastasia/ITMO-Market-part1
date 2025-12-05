@@ -69,8 +69,8 @@ class ShopControllerIntegrationTest {
     @DisplayName("should reject invalid pagination parameters")
     fun testGetShopsWithInvalidPagination() {
         mockMvc.get("/api/shops") {
-            param("page", "0")  // Invalid page
-            param("pageSize", "100")  // Too large
+            param("page", "0")  
+            param("pageSize", "100")  
         }.andExpect {
             status { isBadRequest() }
         }

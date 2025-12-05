@@ -38,7 +38,7 @@ class ProductServiceUnitTest {
     private val SHOP_ID = 1L
     private val MODERATOR_ID = 99L
     private val PRODUCT_ID = 100L
-    // ✅ FIX: Добавлена константа USER_ID
+    
     private val USER_ID = 3L 
 
     @BeforeEach
@@ -69,13 +69,13 @@ class ProductServiceUnitTest {
         whenever(commentService.getCommentCountByProductId(productId)).thenReturn(10L)
     }
 
-    // ==========================================
-    // CRUD Tests
-    // ==========================================
+    
+    
+    
 
     @Test
     fun `createProduct should succeed for shop owner`() {
-        // Arrange
+        
         val shopDto = ShopResponse(
             id = SHOP_ID, name = "Shop", description = null, avatarUrl = null,
             sellerId = SELLER_ID, sellerName = "Seller", productsCount = 0,
@@ -88,10 +88,10 @@ class ProductServiceUnitTest {
         }.whenever(productRepository).save(any())
         mockCommentStats(PRODUCT_ID)
 
-        // Act
+        
         val result = productService.createProduct("Prod", "Desc", BigDecimal("10"), null, SHOP_ID, SELLER_ID)
 
-        // Assert
+        
         assertEquals(ProductStatus.PENDING.name, result.status)
         verify(productRepository).save(any())
     }
@@ -101,7 +101,7 @@ class ProductServiceUnitTest {
         val product = Product(id = PRODUCT_ID, name = "Old", price = BigDecimal("1"), shopId = SHOP_ID, sellerId = SELLER_ID, status = ProductStatus.APPROVED, createdAt = LocalDateTime.now(), updatedAt = LocalDateTime.now())
         
         whenever(productRepository.findById(PRODUCT_ID)).thenReturn(Optional.of(product))
-        mockUser(MODERATOR_ID, setOf("MODERATOR")) // Пользователь - модератор
+        mockUser(MODERATOR_ID, setOf("MODERATOR")) 
         
         doAnswer { 
             it.arguments[0] as Product 
@@ -115,13 +115,13 @@ class ProductServiceUnitTest {
         assertEquals("New Name", result.name)
     }
 
-    // ==========================================
-    // Moderation Tests (Now in ProductService)
-    // ==========================================
+    
+    
+    
 
     @Test
     fun `approveProduct should succeed for Moderator`() {
-        // Arrange
+        
         mockUser(MODERATOR_ID, setOf("MODERATOR"))
         
         val pendingProduct = Product(
@@ -136,10 +136,10 @@ class ProductServiceUnitTest {
 
         mockCommentStats(PRODUCT_ID)
 
-        // Act
+        
         val result = productService.approveProduct(PRODUCT_ID, MODERATOR_ID)
 
-        // Assert
+        
         assertEquals(ProductStatus.APPROVED.name, result.status)
         verify(productRepository).save(check {
             assertEquals(ProductStatus.APPROVED, it.status)
@@ -148,11 +148,11 @@ class ProductServiceUnitTest {
 
     @Test
     fun `approveProduct should fail for simple User`() {
-        // ✅ FIX: Используем константу USER_ID
+        
         mockUser(USER_ID, setOf("USER")) 
 
         assertThrows<ForbiddenException> {
-            // ✅ FIX: Используем константу USER_ID
+            
             productService.approveProduct(PRODUCT_ID, USER_ID) 
         }
         verify(productRepository, never()).save(any())
@@ -173,7 +173,7 @@ class ProductServiceUnitTest {
 
     @Test
     fun `rejectProduct should succeed and set reason`() {
-        mockUser(MODERATOR_ID, setOf("ADMIN")) // Админ тоже может
+        mockUser(MODERATOR_ID, setOf("ADMIN")) 
         
         val pendingProduct = Product(id = PRODUCT_ID, name = "Item", price = BigDecimal("10"), shopId = SHOP_ID, sellerId = SELLER_ID, status = ProductStatus.PENDING, createdAt = LocalDateTime.now(), updatedAt = LocalDateTime.now())
         whenever(productRepository.findById(PRODUCT_ID)).thenReturn(Optional.of(pendingProduct))

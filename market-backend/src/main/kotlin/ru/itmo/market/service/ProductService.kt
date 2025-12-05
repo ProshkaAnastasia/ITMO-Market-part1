@@ -75,7 +75,7 @@ class ProductService(
         shopId: Long,
         sellerId: Long
     ): ProductResponse {
-        // Decoupled: Use ShopService to validate shop
+        
         val shop = shopService.getShopById(shopId)
 
         if (shop.sellerId != sellerId) {
@@ -152,7 +152,7 @@ class ProductService(
         )
     }
 
-    // ModerationService методы:
+    
 
     fun approveProduct(productId: Long, moderatorId: Long): ProductResponse {
         val moderator = userService.getUserById(moderatorId)

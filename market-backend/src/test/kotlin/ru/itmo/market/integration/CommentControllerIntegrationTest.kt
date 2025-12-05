@@ -43,14 +43,6 @@ class CommentControllerIntegrationTest {
             withPassword("itmo_password")
         }
 
-//        @JvmStatic
-//        @DynamicPropertySource
-//        fun configureDataSource(registry: DynamicPropertyRegistry) {
-//            registry.add("spring.datasource.url", postgres::getJdbcUrl)
-//            registry.add("spring.datasource.username", postgres::getUsername)
-//            registry.add("spring.datasource.password", postgres::getPassword)
-//            registry.add("spring.jpa.hibernate.ddl-auto") { "update" }
-//        }
     }
 
     @Autowired lateinit var mockMvc: MockMvc

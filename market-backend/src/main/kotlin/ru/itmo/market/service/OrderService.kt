@@ -47,7 +47,7 @@ class OrderService(
                 orderRepository.save(newCart)
             }
 
-        // Decoupled: Get product details from ProductService
+        
         val product = productService.getProductById(productId)
 
         val existingItem = orderItemRepository.findByOrderIdAndProductId(cart.id, productId)

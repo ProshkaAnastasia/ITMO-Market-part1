@@ -52,7 +52,7 @@ class UserControllerIntegrationTest {
         userRepository.deleteAll()
     }
 
-    // ==================== GET /api/users/me ====================
+    
 
     @Test
     fun `should get current user info`() {
@@ -78,14 +78,14 @@ class UserControllerIntegrationTest {
         }
     }
 
-    // ❌ Удален Test на невалидный токен: `should return 401 when getting current user with invalid token`
+    
 
-    // ==================== PUT /api/users/me ====================
+    
 
     @Test
     fun `should update profile successfully`() {
         val user = testAuthHelper.createTestUser(username = "testuser", email = "testuser@example.com")
-        // ❌ Удален val token = testAuthHelper.createTokenForUser(user)
+        
 
         val updateRequest = UpdateProfileRequest(
             email = "newemail@example.com",
@@ -94,7 +94,7 @@ class UserControllerIntegrationTest {
         )
 
         mockMvc.put("/api/users/me") {
-            // ✅ ЗАМЕНА
+            
             param("userId", user.id.toString())
             contentType = MediaType.APPLICATION_JSON
             content = objectMapper.writeValueAsString(updateRequest)
@@ -110,7 +110,7 @@ class UserControllerIntegrationTest {
     @Test
     fun `should update only email`() {
         val user = testAuthHelper.createTestUser(username = "testuser", email = "testuser@example.com")
-        // ❌ Удален val token = testAuthHelper.createTokenForUser(user)
+        
 
         val updateRequest = UpdateProfileRequest(
             email = "newemail@example.com",
@@ -119,7 +119,7 @@ class UserControllerIntegrationTest {
         )
 
         mockMvc.put("/api/users/me") {
-            // ✅ ЗАМЕНА
+            
             param("userId", user.id.toString())
             contentType = MediaType.APPLICATION_JSON
             content = objectMapper.writeValueAsString(updateRequest)
@@ -132,11 +132,11 @@ class UserControllerIntegrationTest {
     }
 
     @Test
-    @Disabled // No check for updating email
+    @Disabled 
     fun `should return 409 when email already in use`() {
         val user1 = testAuthHelper.createTestUser(username = "user1", email = "user1@example.com")
         val user2 = testAuthHelper.createTestUser(username = "user2", email = "user2@example.com")
-        // ❌ Удален val token = testAuthHelper.createTokenForUser(user1)
+        
 
         val updateRequest = UpdateProfileRequest(
             email = "user2@example.com",
@@ -145,7 +145,7 @@ class UserControllerIntegrationTest {
         )
 
         mockMvc.put("/api/users/me") {
-            // ✅ ЗАМЕНА: аутентифицируемся как user1
+            
             param("userId", user1.id.toString())
             contentType = MediaType.APPLICATION_JSON
             content = objectMapper.writeValueAsString(updateRequest)
@@ -155,10 +155,10 @@ class UserControllerIntegrationTest {
     }
 
     @Test
-    @Disabled // No check for updating values
+    @Disabled 
     fun `should return 400 for invalid email`() {
         val user = testAuthHelper.createTestUser(username = "testuser", email = "testuser@example.com")
-        // ❌ Удален val token = testAuthHelper.createTokenForUser(user)
+        
 
         val updateRequest = UpdateProfileRequest(
             email = "invalid-email",
@@ -167,7 +167,7 @@ class UserControllerIntegrationTest {
         )
 
         mockMvc.put("/api/users/me") {
-            // ✅ ЗАМЕНА
+            
             param("userId", user.id.toString())
             contentType = MediaType.APPLICATION_JSON
             content = objectMapper.writeValueAsString(updateRequest)
@@ -193,22 +193,22 @@ class UserControllerIntegrationTest {
         }
     }
 
-    // ==================== DELETE /api/users/me ====================
+    
 
     @Test
     fun `should delete profile successfully`() {
         val user = testAuthHelper.createTestUser(username = "testuser", email = "testuser@example.com")
-        // ❌ Удален val token = testAuthHelper.createTokenForUser(user)
+        
 
         mockMvc.delete("/api/users/me") {
-            // ✅ ЗАМЕНА
+            
             param("userId", user.id.toString())
         }.andExpect {
             status { isNoContent() }
         }
 
         mockMvc.get("/api/users/me") {
-            // ✅ ЗАМЕНА (второй раз для проверки)
+            
             param("userId", user.id.toString())
         }.andExpect {
             status { isNotFound() }
@@ -223,17 +223,17 @@ class UserControllerIntegrationTest {
         }
     }
 
-    // ==================== GET /api/users/{id} ====================
+    
 
     @Test
     fun `should get user by id as admin`() {
         val admin = testAuthHelper.createTestUser(username = "admin", email = "admin@example.com", roles = setOf(UserRole.ADMIN))
-        // ❌ Удален val adminToken = testAuthHelper.createTokenForUser(admin)
+        
 
         val user = testAuthHelper.createTestUser(username = "testuser", email = "testuser@example.com")
 
         mockMvc.get("/api/users/${user.id}") {
-            // ✅ ЗАМЕНА: аутентифицируемся как admin
+            
             param("adminId", admin.id.toString())
         }.andExpect {
             status { isOk() }
@@ -246,12 +246,12 @@ class UserControllerIntegrationTest {
     @Test
     fun `should return 403 when getting user by id without admin role`() {
         val user1 = testAuthHelper.createTestUser(username = "user1", email = "user1@example.com", roles = setOf(UserRole.USER))
-        // ❌ Удален val token1 = testAuthHelper.createTokenForUser(user1)
+        
 
         val user2 = testAuthHelper.createTestUser(username = "user2", email = "user2@example.com")
 
         mockMvc.get("/api/users/${user2.id}") {
-            // ✅ ЗАМЕНА: аутентифицируемся как user1 (обычный пользователь)
+            
             param("adminId", user1.id.toString())
         }.andExpect {
             status { isForbidden() }
@@ -261,10 +261,10 @@ class UserControllerIntegrationTest {
     @Test
     fun `should return 404 when user not found`() {
         val admin = testAuthHelper.createTestUser(username = "admin", email = "admin@example.com", roles = setOf(UserRole.ADMIN))
-        // ❌ Удален val adminToken = testAuthHelper.createTokenForUser(admin)
+        
 
         mockMvc.get("/api/users/99999") {
-            // ✅ ЗАМЕНА: аутентифицируемся как admin
+            
             param("adminId", admin.id.toString())
         }.andExpect {
             status { isNotFound() }
@@ -279,5 +279,5 @@ class UserControllerIntegrationTest {
         }
     }
 
-    // ❌ Удален Test на невалидный токен: `should return 401 when getting user by id with invalid token`
+    
 }

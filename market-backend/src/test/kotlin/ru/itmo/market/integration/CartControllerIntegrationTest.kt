@@ -101,12 +101,12 @@ class CartControllerIntegrationTest {
         )
     }
 
-    // // ==================== GET /api/cart ====================
+    
 
     @Test
     fun `should get empty cart for authorized user`() {
         mockMvc.get("/api/cart") {
-            // ✅ Добавление userId, требуемого контроллером
+            
             param("userId", testUser.id.toString())
         }.andExpect {
             status { isOk() }
@@ -123,9 +123,9 @@ class CartControllerIntegrationTest {
         }
     }
 
-    // Тест `should reject cart request with invalid token()` удален
+    
 
-    // ==================== POST /api/cart/items ====================
+    
 
     @Test
     fun `should add product to cart successfully`() {
@@ -135,7 +135,7 @@ class CartControllerIntegrationTest {
         )
 
         mockMvc.post("/api/cart/items") {
-            // ✅ Добавление userId, требуемого контроллером
+            
             param("userId", testUser.id.toString())
             contentType = MediaType.APPLICATION_JSON
             content = objectMapper.writeValueAsString(createRequest)
@@ -196,11 +196,11 @@ class CartControllerIntegrationTest {
         }
     }
 
-    // ==================== PUT /api/cart/items/{itemId} ====================
+    
 
     @Test
     fun `should update cart item quantity successfully`() {
-        // 1. Добавляем товар (с фиксами)
+        
         val initialRequest = AddToCartRequest(productId = testProduct.id, quantity = 1)
         val cartResponse = mockMvc.post("/api/cart/items") {
             param("userId", testUser.id.toString())
@@ -211,11 +211,11 @@ class CartControllerIntegrationTest {
         val orderResponse = objectMapper.readValue(cartResponse.response.contentAsString, ru.itmo.market.model.dto.response.OrderResponse::class.java)
         val itemId = orderResponse.items.first().product.id
 
-        // 2. Обновляем количество
+        
         val updateRequest = UpdateQuantityRequest(quantity = 5)
 
         mockMvc.put("/api/cart/items/$itemId") {
-            // ✅ Добавление userId, требуемого контроллером
+            
             param("userId", testUser.id.toString())
             contentType = MediaType.APPLICATION_JSON
             content = objectMapper.writeValueAsString(updateRequest)
@@ -229,7 +229,7 @@ class CartControllerIntegrationTest {
 
     @Test
     fun `should return 200 for zero quantity update (which should remove the item)`() {
-        // 1. Добавляем товар (с фиксами)
+        
         val initialRequest = AddToCartRequest(productId = testProduct.id, quantity = 1)
         val cartResponse = mockMvc.post("/api/cart/items") {
             param("userId", testUser.id.toString())
@@ -240,7 +240,7 @@ class CartControllerIntegrationTest {
         val orderResponse = objectMapper.readValue(cartResponse.response.contentAsString, ru.itmo.market.model.dto.response.OrderResponse::class.java)
         val itemId = orderResponse.items.first().product.id
 
-        // 2. Обновляем количество до 0
+        
         val updateRequest = UpdateQuantityRequest(quantity = 0)
 
         mockMvc.put("/api/cart/items/$itemId") {
@@ -266,11 +266,11 @@ class CartControllerIntegrationTest {
         }
     }
 
-    // ==================== DELETE /api/cart/items/{itemId} ====================
+    
 
     @Test
     fun `should remove item from cart successfully`() {
-        // 1. Добавляем товар (с фиксами)
+        
         val initialRequest = AddToCartRequest(productId = testProduct.id, quantity = 2)
         val cartResponse = mockMvc.post("/api/cart/items") {
             param("userId", testUser.id.toString())
@@ -281,9 +281,9 @@ class CartControllerIntegrationTest {
         val orderResponse = objectMapper.readValue(cartResponse.response.contentAsString, OrderResponse::class.java)
         val itemId = orderResponse.items.first().product.id
 
-        // 2. Удаляем товар
+        
         mockMvc.delete("/api/cart/items/$itemId") {
-            // ✅ Добавление userId, требуемого контроллером
+            
             param("userId", testUser.id.toString())
         }.andExpect {
             status { isOk() }
@@ -309,11 +309,11 @@ class CartControllerIntegrationTest {
         }
     }
 
-    // ==================== DELETE /api/cart ====================
+    
 
     @Test
     fun `should clear cart successfully`() {
-        // 1. Добавляем товар (с фиксами)
+        
         val initialRequest = AddToCartRequest(productId = testProduct.id, quantity = 2)
         mockMvc.post("/api/cart/items") {
             param("userId", testUser.id.toString())
@@ -323,15 +323,15 @@ class CartControllerIntegrationTest {
             status { isOk() }
         }
 
-        // 2. Очищаем корзину
+        
         mockMvc.delete("/api/cart") {
-            // ✅ Добавление userId, требуемого контроллером
+            
             param("userId", testUser.id.toString())
         }.andExpect {
             status { isNoContent() }
         }
 
-        // 3. Проверяем, что корзина пуста
+        
         mockMvc.get("/api/cart") {
             param("userId", testUser.id.toString())
         }.andExpect {
@@ -342,12 +342,12 @@ class CartControllerIntegrationTest {
 
     @Test
     fun `should return 204 when clearing empty cart`() {
-        // Вызываем GET, чтобы гарантировать создание пустой корзины в базе
+        
         mockMvc.get("/api/cart") {
             param("userId", testUser.id.toString())
         }.andExpect { status { isOk() } }
 
-        // Очищаем
+        
         mockMvc.delete("/api/cart") {
             param("userId", testUser.id.toString())
         }.andExpect {
@@ -363,5 +363,5 @@ class CartControllerIntegrationTest {
         }
     }
     
-    // Тест `should reject cart request with invalid token()` удален
+    
 }

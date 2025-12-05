@@ -74,7 +74,7 @@ class OrderControllerIntegrationTest {
         userRepository.deleteAll()
     }
 
-    // ==================== GET /api/orders ====================
+    
 
     @Test
     fun `should get empty orders list for new user`() {
@@ -97,7 +97,7 @@ class OrderControllerIntegrationTest {
     fun `should get orders with pagination`() {
         val user = testAuthHelper.createTestUser()
 
-        // Создаём товар и добавляем в корзину
+        
         val seller = testAuthHelper.createTestUser(username = "seller", email = "seller@example.com",  roles = setOf(UserRole.SELLER))
         val shop = shopRepository.save(
             Shop(
@@ -126,7 +126,7 @@ class OrderControllerIntegrationTest {
             content = objectMapper.writeValueAsString(addRequest)
         }
 
-        // Создаём заказ
+        
         val createOrderRequest = CreateOrderRequest(deliveryAddress = "123 Main St")
         mockMvc.post("/api/orders") {
             param("userId", user.id.toString())
@@ -136,7 +136,7 @@ class OrderControllerIntegrationTest {
             status { isCreated() }
         }
 
-        // Получаем список заказов
+        
         mockMvc.get("/api/orders") {
             param("userId", user.id.toString())
             param("page", "1")
@@ -165,7 +165,7 @@ class OrderControllerIntegrationTest {
     @Disabled
     fun `should reject orders list with invalid token`() {
         mockMvc.get("/api/orders") {
-            header("Authorization", "Bearer invalid_token") // Это оставим для проверки реакции на хидер
+            header("Authorization", "Bearer invalid_token") 
             param("page", "1")
             param("pageSize", "20")
         }.andExpect {
@@ -173,12 +173,12 @@ class OrderControllerIntegrationTest {
         }
     }
 
-    // ==================== GET /api/orders/{id} ====================
+    
 
     @Test
     fun `should get order by id successfully`() {
         val user = testAuthHelper.createTestUser()
-        // ❌ TOKEN удален
+        
 
         val seller = testAuthHelper.createTestUser(username = "seller", email = "seller@example.com", roles = setOf(UserRole.SELLER))
         val shop = shopRepository.save(
@@ -233,7 +233,7 @@ class OrderControllerIntegrationTest {
     @Test
     fun `should return 404 for non-existent order`() {
         val user = testAuthHelper.createTestUser()
-        // ❌ TOKEN удален
+        
 
         mockMvc.get("/api/orders/99999") {
             param("userId", user.id.toString())
@@ -246,7 +246,7 @@ class OrderControllerIntegrationTest {
     fun `should return 403 when accessing other user order`() {
         val user1 = testAuthHelper.createTestUser(username = "user1", email = "test1@example.com")
         val user2 = testAuthHelper.createTestUser(username = "user2", email = "test2@example.com")
-        // ❌ TOKENS удалены
+        
 
         val seller = testAuthHelper.createTestUser(username = "seller", email = "seller@example.com", roles = setOf(UserRole.SELLER))
         val shop = shopRepository.save(
@@ -269,7 +269,7 @@ class OrderControllerIntegrationTest {
             )
         )
 
-        // User1 создаёт заказ
+        
         val addRequest = AddToCartRequest(productId = product.id, quantity = 1)
         mockMvc.post("/api/cart/items") {
             param("userId", user1.id.toString())
@@ -289,11 +289,11 @@ class OrderControllerIntegrationTest {
         val responseBody = orderResponse.response.contentAsString
         val createdOrder = objectMapper.readValue(responseBody, OrderResponse::class.java)
 
-        // User2 пытается получить заказ User1
+        
         mockMvc.get("/api/orders/${createdOrder.id}") {
             param("userId", user2.id.toString())
         }.andExpect {
-            status { isNotFound() } // Или isForbidden(), в зависимости от вашей реализации
+            status { isNotFound() } 
         }
     }
 
@@ -305,12 +305,12 @@ class OrderControllerIntegrationTest {
         }
     }
 
-    // ==================== POST /api/orders ====================
+    
 
     @Test
     fun `should create order successfully`() {
         val user = testAuthHelper.createTestUser()
-        // ❌ TOKEN удален
+        
 
         val seller = testAuthHelper.createTestUser(username = "seller", email = "seller@example.com", roles = setOf(UserRole.SELLER))
         val shop = shopRepository.save(
@@ -359,7 +359,7 @@ class OrderControllerIntegrationTest {
     @Test
     fun `should return 400 for empty delivery address`() {
         val user = testAuthHelper.createTestUser()
-        // ❌ TOKEN удален
+        
 
         val seller = testAuthHelper.createTestUser(username = "seller", email = "seller@example.com", roles = setOf(UserRole.SELLER))
         val shop = shopRepository.save(
@@ -403,7 +403,7 @@ class OrderControllerIntegrationTest {
     @Test
     fun `should return 400 for empty cart`() {
         val user = testAuthHelper.createTestUser()
-        // ❌ TOKEN удален
+        
 
         val createOrderRequest = CreateOrderRequest(deliveryAddress = "123 Main St")
 

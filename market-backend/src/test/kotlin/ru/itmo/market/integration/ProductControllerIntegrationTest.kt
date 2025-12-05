@@ -66,7 +66,7 @@ class ProductControllerIntegrationTest {
         userRepository.deleteAll()
     }
 
-    // ==================== GET /api/products ====================
+    
 
     @Test
     fun `should get empty products list`() {
@@ -128,7 +128,7 @@ class ProductControllerIntegrationTest {
         }
     }
 
-    // ==================== GET /api/products/infinite ====================
+    
 
     @Test
     fun `should get products for infinite scroll`() {
@@ -207,7 +207,7 @@ class ProductControllerIntegrationTest {
         }
     }
 
-    // ==================== GET /api/products/search ====================
+    
 
     @Test
     fun `should search products by keywords`() {
@@ -259,7 +259,7 @@ class ProductControllerIntegrationTest {
         }
     }
 
-    @Test // No check for invalid parameters
+    @Test 
     fun `should return 400 for empty keywords`() {
         mockMvc.get("/api/products/search") {
             param("keywords", "")
@@ -270,7 +270,7 @@ class ProductControllerIntegrationTest {
         }
     }
 
-    // ==================== GET /api/products/{id} ====================
+    
 
     @Test
     fun `should get product by id`() {
@@ -310,12 +310,12 @@ class ProductControllerIntegrationTest {
         }
     }
 
-    // ==================== POST /api/products ====================
+    
 
     @Test
     fun `should create product successfully`() {
         val seller = testAuthHelper.createTestUser(username = "seller", email = "seller@example.com", roles = setOf(UserRole.SELLER))
-        // ❌ TOKEN удален
+        
         val shop = shopRepository.save(
             Shop(
                 name = "Test Shop",
@@ -348,7 +348,7 @@ class ProductControllerIntegrationTest {
     @Test
     fun `should return 400 for empty product name`() {
         val seller = testAuthHelper.createTestUser(username = "seller", email = "seller@example.com", roles = setOf(UserRole.SELLER))
-        // ❌ TOKEN удален
+        
         val shop = shopRepository.save(
             Shop(
                 name = "Test Shop",
@@ -375,10 +375,10 @@ class ProductControllerIntegrationTest {
         }
     }
 
-    @Test // In ProductController and further there's no check for shops existence!
+    @Test 
     fun `should return 404 when shop not found`() {
         val seller = testAuthHelper.createTestUser(username = "seller", email = "seller@example.com", roles = setOf(UserRole.SELLER))
-        // ❌ TOKEN удален
+        
 
         val createRequest = CreateProductRequest(
             name = "New Product",
@@ -416,12 +416,12 @@ class ProductControllerIntegrationTest {
         }
     }
 
-    // ==================== PUT /api/products/{id} ====================
+    
 
     @Test
     fun `should update product successfully`() {
         val seller = testAuthHelper.createTestUser(username = "seller", email = "seller@example.com", roles = setOf(UserRole.SELLER))
-        // ❌ TOKEN удален
+        
         val shop = shopRepository.save(
             Shop(
                 name = "Test Shop",
@@ -465,7 +465,7 @@ class ProductControllerIntegrationTest {
     fun `should return 403 when updating other user product`() {
         val seller1 = testAuthHelper.createTestUser(username = "seller1", email = "seller1@example.com", roles = setOf(UserRole.SELLER))
         val seller2 = testAuthHelper.createTestUser(username = "seller2", email = "seller2@example.com", roles = setOf(UserRole.SELLER))
-        // ❌ TOKEN удален
+        
 
         val shop = shopRepository.save(
             Shop(
@@ -506,7 +506,7 @@ class ProductControllerIntegrationTest {
     @Test
     fun `should return 404 when updating non-existent product`() {
         val seller = testAuthHelper.createTestUser(username = "seller", email = "seller@example.com", roles = setOf(UserRole.SELLER))
-        // ❌ TOKEN удален
+        
 
         val updateRequest = UpdateProductRequest(
             name = "Updated Product",
@@ -524,12 +524,12 @@ class ProductControllerIntegrationTest {
         }
     }
 
-    // ==================== DELETE /api/products/{id} ====================
+    
 
     @Test
     fun `should delete product successfully`() {
         val seller = testAuthHelper.createTestUser(username = "seller", email = "seller@example.com", roles = setOf(UserRole.SELLER))
-        // ❌ TOKEN удален
+        
         val shop = shopRepository.save(
             Shop(
                 name = "Test Shop",
@@ -565,7 +565,7 @@ class ProductControllerIntegrationTest {
     fun `should return 403 when deleting other user product`() {
         val seller1 = testAuthHelper.createTestUser(username = "seller1", email = "seller1@example.com", roles = setOf(UserRole.SELLER))
         val seller2 = testAuthHelper.createTestUser(username = "seller2", email = "seller2@example.com", roles = setOf(UserRole.SELLER))
-        // ❌ TOKEN удален
+        
 
         val shop = shopRepository.save(
             Shop(
@@ -597,7 +597,7 @@ class ProductControllerIntegrationTest {
     @Test
     fun `should return 404 when deleting non-existent product`() {
         val seller = testAuthHelper.createTestUser(username = "seller", email = "seller@example.com", roles = setOf(UserRole.SELLER))
-        // ❌ TOKEN удален
+        
 
         mockMvc.delete("/api/products/99999") {
             param("sellerId", seller.id.toString())
