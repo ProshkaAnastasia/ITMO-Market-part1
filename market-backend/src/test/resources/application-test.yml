@@ -27,11 +27,6 @@ spring:
 server:
   port: 8080
 
-jwt:
-  secret: test-secret-key-for-testing-purposes-only-256-bits-minimum
-  access-token-expiration: 900000
-  refresh-token-expiration: 604800000
-
 logging:
   level:
     root: WARN
