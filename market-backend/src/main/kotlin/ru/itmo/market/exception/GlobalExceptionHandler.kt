@@ -3,7 +3,6 @@ package ru.itmo.market.exception
 
 import jakarta.validation.ConstraintViolationException
 import org.slf4j.LoggerFactory
-import org.springframework.context.MessageSourceResolvable
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.MethodArgumentNotValidException
@@ -13,7 +12,6 @@ import org.springframework.web.context.request.WebRequest
 import org.springframework.web.method.annotation.HandlerMethodValidationException
 import ru.itmo.market.model.dto.response.ErrorResponse
 import java.time.LocalDateTime
-import java.util.stream.Collectors
 
 
 @ControllerAdvice

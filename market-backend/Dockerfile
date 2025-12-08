@@ -13,7 +13,6 @@ COPY src src
 RUN gradle build -x test --no-daemon
 
 # Stage 2: Runtime
-# ✅ ИСПРАВЛЕНО: Используйте eclipse-temurin:17-jre вместо alpine версии
 FROM eclipse-temurin:17-jre
 
 WORKDIR /app

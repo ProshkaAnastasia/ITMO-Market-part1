@@ -8,19 +8,13 @@ import org.junit.jupiter.api.extension.ExtendWith
 import org.mockito.Mock
 import org.mockito.junit.jupiter.MockitoExtension
 import org.mockito.kotlin.*
-import org.springframework.data.domain.Page
-import org.springframework.data.domain.PageImpl
-import org.springframework.data.domain.PageRequest
 import ru.itmo.market.exception.ForbiddenException
 import ru.itmo.market.exception.ResourceNotFoundException
 import ru.itmo.market.model.dto.response.PaginatedResponse
 import ru.itmo.market.model.dto.response.ProductResponse
 import ru.itmo.market.model.dto.response.UserResponse
-import ru.itmo.market.model.entity.Product
 import ru.itmo.market.model.entity.Shop
-import ru.itmo.market.model.entity.User
 import ru.itmo.market.model.enums.ProductStatus
-import ru.itmo.market.model.enums.UserRole
 
 
 

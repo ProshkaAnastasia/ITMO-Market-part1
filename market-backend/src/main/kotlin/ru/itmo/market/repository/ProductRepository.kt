@@ -6,9 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Query
 import org.springframework.stereotype.Repository
 import ru.itmo.market.model.entity.*
-import ru.itmo.market.model.enums.OrderStatus
 import ru.itmo.market.model.enums.ProductStatus
-import java.util.Optional
 
 @Repository
 interface ProductRepository : JpaRepository<Product, Long> {
@@ -26,8 +24,6 @@ interface ProductRepository : JpaRepository<Product, Long> {
         """
     )
     fun searchApprovedProducts(keyword: String, pageable: Pageable): Page<Product>
-    
-    fun findAllByStatusAndShopId(status: ProductStatus, shopId: Long, pageable: Pageable): Page<Product>
 
     fun countByShopId(shopId: Long): Long
     

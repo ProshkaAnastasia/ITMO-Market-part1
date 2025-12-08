@@ -8,17 +8,13 @@ import org.junit.jupiter.api.extension.ExtendWith
 import org.mockito.Mock
 import org.mockito.junit.jupiter.MockitoExtension
 import org.mockito.kotlin.*
-import org.springframework.data.domain.PageImpl
-import org.springframework.data.domain.PageRequest
 import ru.itmo.market.exception.ResourceNotFoundException
 import ru.itmo.market.model.dto.response.PaginatedResponse
 import ru.itmo.market.model.dto.response.ProductResponse
 import ru.itmo.market.model.dto.response.UserResponse
-import ru.itmo.market.model.entity.Product
 import ru.itmo.market.model.enums.ProductStatus
 import java.math.BigDecimal
 import java.time.LocalDateTime
-import java.util.*
 
 @ExtendWith(MockitoExtension::class)
 class ModerationServiceUnitTest {
@@ -26,9 +22,6 @@ class ModerationServiceUnitTest {
     
     @Mock
     private lateinit var productService: ProductService
-
-    @Mock
-    private lateinit var commentService: CommentService
 
     @Mock
     private lateinit var userService: UserService
@@ -47,7 +40,6 @@ class ModerationServiceUnitTest {
 
         moderationService = ModerationService(
             productService,
-            commentService,
             userService
         )
 

@@ -9,7 +9,6 @@ import org.mockito.Mock
 import org.mockito.junit.jupiter.MockitoExtension
 import org.mockito.kotlin.*
 import ru.itmo.market.exception.ForbiddenException
-import ru.itmo.market.exception.ResourceNotFoundException
 import ru.itmo.market.model.dto.request.UpdateProductRequest
 import ru.itmo.market.model.dto.response.ShopResponse
 import ru.itmo.market.model.dto.response.UserResponse

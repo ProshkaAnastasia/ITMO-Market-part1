@@ -21,7 +21,6 @@ import ru.itmo.market.model.entity.Product
 import ru.itmo.market.model.dto.request.AddToCartRequest
 import ru.itmo.market.model.dto.request.CreateOrderRequest
 import ru.itmo.market.model.dto.response.OrderResponse
-import ru.itmo.market.model.dto.response.PaginatedResponse
 import ru.itmo.market.model.enums.UserRole
 import ru.itmo.market.model.enums.ProductStatus
 import java.math.BigDecimal

@@ -24,7 +24,6 @@ import ru.itmo.market.model.entity.Product
 import ru.itmo.market.model.entity.Shop
 import ru.itmo.market.model.entity.User
 import ru.itmo.market.model.enums.ProductStatus
-import ru.itmo.market.model.enums.UserRole
 import ru.itmo.market.repository.*
 import java.math.BigDecimal
 
@@ -208,7 +207,7 @@ class CartControllerIntegrationTest {
             content = objectMapper.writeValueAsString(initialRequest)
         }.andReturn()
 
-        val orderResponse = objectMapper.readValue(cartResponse.response.contentAsString, ru.itmo.market.model.dto.response.OrderResponse::class.java)
+        val orderResponse = objectMapper.readValue(cartResponse.response.contentAsString, OrderResponse::class.java)
         val itemId = orderResponse.items.first().product.id
 
         
@@ -237,7 +236,7 @@ class CartControllerIntegrationTest {
             content = objectMapper.writeValueAsString(initialRequest)
         }.andReturn()
 
-        val orderResponse = objectMapper.readValue(cartResponse.response.contentAsString, ru.itmo.market.model.dto.response.OrderResponse::class.java)
+        val orderResponse = objectMapper.readValue(cartResponse.response.contentAsString, OrderResponse::class.java)
         val itemId = orderResponse.items.first().product.id
 
         

@@ -1,18 +1,15 @@
-package ru.itmo.market.integration 
-import com.fasterxml.jackson.databind.ObjectMapper 
+package ru.itmo.market.integration
+
+
 import org.junit.jupiter.api.BeforeEach 
 import org.junit.jupiter.api.Test 
-import org.junit.jupiter.api.DisplayName 
-import org.mockito.kotlin.eq 
-import org.mockito.kotlin.whenever 
+import org.junit.jupiter.api.DisplayName
 import org.springframework.beans.factory.annotation.Autowired 
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc 
-import org.springframework.boot.test.context.SpringBootTest 
-import org.springframework.http.MediaType 
+import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles 
 import org.springframework.test.web.servlet.MockMvc 
-import org.springframework.test.web.servlet.get 
-import org.springframework.test.web.servlet.post 
+import org.springframework.test.web.servlet.get
 import org.testcontainers.junit.jupiter.Container 
 import org.testcontainers.junit.jupiter.Testcontainers 
 import org.testcontainers.containers.PostgreSQLContainer 
@@ -21,11 +18,7 @@ import ru.itmo.market.model.entity.User
 import ru.itmo.market.model.entity.Shop 
 import ru.itmo.market.model.enums.UserRole 
 import ru.itmo.market.repository.* 
-import java.math.BigDecimal 
-import java.util.*
-
-import org.springframework.test.context.DynamicPropertySource
-import org.springframework.test.context.DynamicPropertyRegistry
+import java.math.BigDecimal
 
 
 @SpringBootTest

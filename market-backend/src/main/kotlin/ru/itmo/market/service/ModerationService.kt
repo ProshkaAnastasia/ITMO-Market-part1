@@ -9,7 +9,6 @@ import ru.itmo.market.model.dto.response.PaginatedResponse
 @Service
 class ModerationService(
     private val productService: ProductService,
-    private val commentService: CommentService,
     private val userService: UserService
 ) {
 

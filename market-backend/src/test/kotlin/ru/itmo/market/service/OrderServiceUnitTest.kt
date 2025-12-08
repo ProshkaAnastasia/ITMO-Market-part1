@@ -9,7 +9,6 @@ import org.mockito.Mock
 import org.mockito.junit.jupiter.MockitoExtension
 import org.mockito.kotlin.*
 import ru.itmo.market.exception.BadRequestException
-import ru.itmo.market.exception.ResourceNotFoundException
 import ru.itmo.market.model.dto.response.ProductResponse
 import ru.itmo.market.model.entity.Order
 import ru.itmo.market.model.entity.OrderItem

@@ -1,6 +1,5 @@
 package ru.itmo.market.model.dto.response
 
-import java.math.BigDecimal
 import java.time.LocalDateTime
 
 data class CommentResponse(

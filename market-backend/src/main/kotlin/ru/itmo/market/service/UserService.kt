@@ -1,22 +1,13 @@
 package ru.itmo.market.service
 
-import org.springframework.data.domain.PageRequest
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import ru.itmo.market.exception.BadRequestException
 import ru.itmo.market.exception.ConflictException
-import ru.itmo.market.exception.ForbiddenException
 import ru.itmo.market.exception.ResourceNotFoundException
 import ru.itmo.market.model.dto.response.UserResponse
-import ru.itmo.market.model.dto.response.CommentResponse
-import ru.itmo.market.model.dto.response.PaginatedResponse
-import ru.itmo.market.model.entity.Comment
-import ru.itmo.market.model.entity.Product
 import ru.itmo.market.model.entity.User
-import ru.itmo.market.model.enums.ProductStatus
 import ru.itmo.market.repository.UserRepository
-import ru.itmo.market.repository.CommentRepository
-import ru.itmo.market.repository.ProductRepository
 
 @Service
 class UserService(
@@ -77,29 +68,6 @@ class UserService(
             roles = this.roles.map { it.name }.toSet(),
             createdAt = this.createdAt
         )
-    }
-
-    fun findUserEntityByUsername(username: String): User {
-        return userRepository.findByUsername(username)
-            .orElseThrow { ResourceNotFoundException("Пользователь $username не найден") }
-    }
-
-    fun existsByUsername(username: String): Boolean {
-        return userRepository.existsByUsername(username)
-    }
-
-    fun existsByEmail(email: String): Boolean {
-        return userRepository.existsByEmail(email)
-    }
-
-    @Transactional
-    fun saveUser(user: User): User {
-        return userRepository.save(user)
-    }
-
-    fun findUserEntityById(id: Long): User {
-        return userRepository.findById(id)
-            .orElseThrow { ResourceNotFoundException("Пользователь с ID $id не найден") }
     }
 
 }

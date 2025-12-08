@@ -9,7 +9,6 @@ import org.mockito.Mock
 import org.mockito.junit.jupiter.MockitoExtension
 import org.mockito.kotlin.*
 import ru.itmo.market.exception.ResourceNotFoundException
-import ru.itmo.market.model.dto.request.UpdateProfileRequest
 import ru.itmo.market.model.entity.User
 import ru.itmo.market.model.enums.UserRole
 import ru.itmo.market.repository.UserRepository

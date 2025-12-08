@@ -1,7 +1,6 @@
 package ru.itmo.market.model.dto.request
 
 import jakarta.validation.constraints.*
-import java.math.BigDecimal
 
 data class CreateCommentRequest(
     @field:NotBlank(message = "Текст комментария не может быть пустым")
