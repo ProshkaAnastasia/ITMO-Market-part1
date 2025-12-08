@@ -1,14 +1,13 @@
-version: '3.8'
+version: '3.9'
 
 services:
-  # PostgreSQL Database
   postgres:
     image: postgres:15-alpine
     container_name: itmo-market-postgres
     environment:
-      POSTGRES_USER: ${DB_USER:-itmo_user}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-itmo_password}
-      POSTGRES_DB: ${DB_NAME:-itmo_market}
+      POSTGRES_USER: itmo_user
+      POSTGRES_PASSWORD: itmo_password
+      POSTGRES_DB: itmo_market
       POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=ru_RU.UTF-8"
     ports:
       - "5432:5432"
@@ -20,54 +19,137 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - itmo-market-network
+      - itmo-network
 
-  # Backend Application
-  backend:
-    build:
-      context: ./market-backend
-      dockerfile: Dockerfile
-    container_name: itmo-market-backend
-    depends_on:
-      postgres:
-        condition: service_healthy
-    environment:
-      SERVER_PORT: 8080
-      DB_HOST: postgres
-      DB_PORT: 5432
-      DB_NAME: ${DB_NAME:-itmo_market}
-      DB_USER: ${DB_USER:-itmo_user}
-      DB_PASSWORD: ${DB_PASSWORD:-itmo_password}
-    ports:
-      - "8080:8080"
-    volumes:
-      - ./backend/src:/app/src
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 10s
-    networks:
-      - itmo-market-network
-
-  # Adminer for database management
   adminer:
     image: adminer:latest
     container_name: itmo-market-adminer
     depends_on:
       - postgres
     ports:
-      - "8081:8080"
+      - "8090:8080"
     environment:
       ADMINER_DEFAULT_SERVER: postgres
     networks:
-      - itmo-market-network
+      - itmo-network
+
+  eureka-server:
+    build:
+      context: ./eureka-server
+    container_name: eureka-server
+    environment:
+      SERVER_PORT: 8761
+    ports:
+      - "8761:8761"
+    networks:
+      - itmo-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  config-server:
+    build:
+      context: ./config-server
+    container_name: config-server
+    environment:
+      SERVER_PORT: 8888
+    ports:
+      - "8888:8888"
+    networks:
+      - itmo-network
+    depends_on:
+      - eureka-server
+    volumes:
+      - ./config-repo:/config-repo
+
+  api-gateway:
+    build:
+      context: ./api-gateway
+    container_name: api-gateway
+    environment:
+      SERVER_PORT: 8080
+      EUREKA_CLIENT_SERVICE_URL_DEFAULT_ZONE: http://eureka-server:8761/eureka/
+    ports:
+      - "8080:8080"
+    networks:
+      - itmo-network
+    depends_on:
+      - eureka-server
+      - config-server
+
+  user-service:
+    build:
+      context: ./user-service
+    container_name: user-service
+    environment:
+      SERVER_PORT: 8081
+      SPRING_CLOUD_CONFIG_URI: http://config-server:8888
+      EUREKA_CLIENT_SERVICE_URL_DEFAULT_ZONE: http://eureka-server:8761/eureka/
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: itmo_market
+      DB_USER: itmo_user
+      DB_PASSWORD: itmo_password
+    ports:
+      - "8081:8081"
+    networks:
+      - itmo-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      config-server:
+        condition: service_started
+
+  product-service:
+    build:
+      context: ./product-service
+    container_name: product-service
+    environment:
+      SERVER_PORT: 8082
+      SPRING_CLOUD_CONFIG_URI: http://config-server:8888
+      EUREKA_CLIENT_SERVICE_URL_DEFAULT_ZONE: http://eureka-server:8761/eureka/
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: itmo_market
+      DB_USER: itmo_user
+      DB_PASSWORD: itmo_password
+    ports:
+      - "8082:8082"
+    networks:
+      - itmo-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      config-server:
+        condition: service_started
+
+  order-service:
+    build:
+      context: ./order-service
+    container_name: order-service
+    environment:
+      SERVER_PORT: 8083
+      SPRING_CLOUD_CONFIG_URI: http://config-server:8888
+      EUREKA_CLIENT_SERVICE_URL_DEFAULT_ZONE: http://eureka-server:8761/eureka/
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: itmo_market
+      DB_USER: itmo_user
+      DB_PASSWORD: itmo_password
+    ports:
+      - "8083:8083"
+    networks:
+      - itmo-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      config-server:
+        condition: service_started
+
+networks:
+  itmo-network:
+    driver: bridge
 
 volumes:
   postgres_data:
     driver: local
-
-networks:
-  itmo-market-network:
-    driver: bridge

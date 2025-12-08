@@ -1,0 +1,73 @@
+package ru.itmo.market.user_domain.service
+
+import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
+import ru.itmo.market.exception.BadRequestException
+import ru.itmo.market.exception.ConflictException
+import ru.itmo.market.exception.ResourceNotFoundException
+import ru.itmo.market.model.dto.response.UserResponse
+import ru.itmo.market.user_domain.model.entity.User
+import ru.itmo.market.user_domain.repository.UserRepository
+
+@Service
+class UserService(
+    private val userRepository: UserRepository
+) {
+
+    fun getUserById(userId: Long): UserResponse {
+        val user = userRepository.findById(userId)
+            .orElseThrow { ResourceNotFoundException("Пользователь с ID $userId не найден") }
+        return user.toResponse()
+    }
+
+    fun getCurrentUser(userId: Long): UserResponse {
+        val user = userRepository.findById(userId)
+            .orElseThrow { ResourceNotFoundException("Пользователь не найден") }
+        return user.toResponse()
+    }
+
+    @Transactional
+    fun updateProfile(userId: Long, email: String?, firstName: String?, lastName: String?): UserResponse {
+        val user = userRepository.findById(userId)
+            .orElseThrow { ResourceNotFoundException("Пользователь не найден") }
+
+        email?.takeIf { it != user.email }?.let { newEmail ->
+            if (!newEmail.matches(Regex("^[A-Za-z0-9+_.-]+@[^@]+\\.[A-Za-z]{2,}$"))) {
+                throw BadRequestException("Некорректный формат email: $newEmail")
+            }
+
+            if (userRepository.existsByEmail(newEmail)) {
+                throw ConflictException("Email $newEmail уже используется другим пользователем")
+            }
+        }
+
+        val updatedUser = user.copy(
+            email = email ?: user.email,
+            firstName = firstName ?: user.firstName,
+            lastName = lastName ?: user.lastName
+        )
+
+        val savedUser = userRepository.save(updatedUser)
+        return savedUser.toResponse()
+    }
+
+    @Transactional
+    fun deleteProfile(userId: Long) {
+        userRepository.findById(userId)
+            .orElseThrow { ResourceNotFoundException("Пользователь не найден") }
+        userRepository.deleteById(userId)
+    }
+
+    private fun User.toResponse(): UserResponse {
+        return UserResponse(
+            id = this.id,
+            username = this.username,
+            email = this.email,
+            firstName = this.firstName,
+            lastName = this.lastName,
+            roles = this.roles.map { it.name }.toSet(),
+            createdAt = this.createdAt
+        )
+    }
+
+}

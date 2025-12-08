@@ -1,0 +1,9 @@
+CREATE TABLE user_service.shops (
+    id BIGSERIAL PRIMARY KEY,
+    name VARCHAR(200) NOT NULL,
+    description TEXT,
+    avatar_url VARCHAR(500),
+    seller_id BIGINT UNIQUE NOT NULL REFERENCES user_service.users(id) ON DELETE CASCADE,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
