@@ -1,6 +1,5 @@
 package ru.itmo.user.exception
 
-
 import jakarta.validation.ConstraintViolationException
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
@@ -10,9 +9,8 @@ import org.springframework.web.bind.annotation.ControllerAdvice
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.context.request.WebRequest
 import org.springframework.web.method.annotation.HandlerMethodValidationException
-import ru.itmo.market.model.dto.response.ErrorResponse
+import ru.itmo.user.model.dto.response.ErrorResponse
 import java.time.LocalDateTime
-
 
 @ControllerAdvice
 class GlobalExceptionHandler {
