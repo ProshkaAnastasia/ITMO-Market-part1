@@ -35,7 +35,8 @@ services:
 
   eureka-server:
     build:
-      context: ./eureka-server
+      context: .
+      dockerfile: ./eureka-server/Dockerfile
     container_name: eureka-server
     environment:
       SERVER_PORT: 8761
@@ -49,7 +50,8 @@ services:
 
   config-server:
     build:
-      context: ./config-server
+      context: .
+      dockerfile: ./config-server/Dockerfile
     container_name: config-server
     environment:
       SERVER_PORT: 8888
@@ -64,7 +66,8 @@ services:
 
   api-gateway:
     build:
-      context: ./api-gateway
+      context: .
+      dockerfile: ./api-gateway/Dockerfile
     container_name: api-gateway
     environment:
       SERVER_PORT: 8080
@@ -79,7 +82,8 @@ services:
 
   user-service:
     build:
-      context: ./user-service
+      context: .
+      dockerfile: ./user-service/Dockerfile
     container_name: user-service
     environment:
       SERVER_PORT: 8081
@@ -102,7 +106,8 @@ services:
 
   product-service:
     build:
-      context: ./product-service
+      context: .
+      dockerfile: ./product-service/Dockerfile
     container_name: product-service
     environment:
       SERVER_PORT: 8082
@@ -125,7 +130,8 @@ services:
 
   order-service:
     build:
-      context: ./order-service
+      context: .
+      dockerfile: ./order-service/Dockerfile
     container_name: order-service
     environment:
       SERVER_PORT: 8083
