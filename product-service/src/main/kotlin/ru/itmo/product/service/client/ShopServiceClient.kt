@@ -5,7 +5,7 @@ import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import ru.itmo.product.model.dto.response.ShopResponse
 
-@FeignClient(name = "user-service")
+@FeignClient(name = "shop-service")
 interface ShopServiceClient {
     @GetMapping("/api/shops/{id}")
     fun getShopById(@PathVariable id: Long): ShopResponse

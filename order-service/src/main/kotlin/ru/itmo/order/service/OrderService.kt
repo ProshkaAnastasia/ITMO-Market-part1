@@ -13,13 +13,14 @@ import ru.itmo.order.model.entity.OrderItem
 import ru.itmo.order.model.enums.OrderStatus
 import ru.itmo.order.repository.OrderRepository
 import ru.itmo.order.repository.OrderItemRepository
+import ru.itmo.order.service.client.ProductServiceClient
 import java.math.BigDecimal
 
 @Service
 class OrderService(
     private val orderRepository: OrderRepository,
     private val orderItemRepository: OrderItemRepository,
-    private val productService: ProductService
+    private val productServiceClient: ProductServiceClient
 ) {
 
     fun getCart(userId: Long): OrderResponse {
@@ -48,7 +49,7 @@ class OrderService(
             }
 
         
-        val product = productService.getProductById(productId)
+        val product = productServiceClient.getProductById(productId)
 
         val existingItem = orderItemRepository.findByOrderIdAndProductId(cart.id, productId)
         
@@ -179,9 +180,9 @@ class OrderService(
     private fun Order.toResponse(): OrderResponse {
         val items = orderItemRepository.findAllByOrderId(this.id)
         val itemResponses = items.map { item ->
-            val productDto = productService.getProductById(item.productId)
+            val productDto = productServiceClient.getProductById(item.productId)
 
-            ru.itmo.order.model.dto.response.OrderItemResponse(
+            OrderItemResponse(
                 id = item.id,
                 product = productDto,
                 quantity = item.quantity,

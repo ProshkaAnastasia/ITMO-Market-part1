@@ -5,11 +5,12 @@ import org.springframework.transaction.annotation.Transactional
 import ru.itmo.product.exception.ForbiddenException
 import ru.itmo.product.model.dto.response.ProductResponse
 import ru.itmo.product.model.dto.response.PaginatedResponse
+import ru.itmo.product.service.client.UserServiceClient
 
 @Service
 class ModerationService(
     private val productService: ProductService,
-    private val userService: UserService
+    private val userServiceClient: UserServiceClient
 ) {
 
     @Transactional
@@ -23,7 +24,7 @@ class ModerationService(
     }
 
     fun getPendingProducts(moderatorId: Long, page: Int, pageSize: Int): PaginatedResponse<ProductResponse> {
-        val moderator = userService.getUserById(moderatorId)
+        val moderator = userServiceClient.getUserById(moderatorId)
         if (!moderator.roles.contains("MODERATOR") && !moderator.roles.contains("ADMIN")) {
             throw ForbiddenException("Только модераторы и администраторы могут получать товары на модерации.")
         }
@@ -31,7 +32,7 @@ class ModerationService(
     }
 
     fun getPendingProductById(moderatorId: Long, productId: Long): ProductResponse {
-        val moderator = userService.getUserById(moderatorId)
+        val moderator = userServiceClient.getUserById(moderatorId)
         if (!moderator.roles.contains("MODERATOR") && !moderator.roles.contains("ADMIN")) {
             throw ForbiddenException("Только модераторы и администраторы могут получать товары на модерации.")
         }

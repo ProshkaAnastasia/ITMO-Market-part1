@@ -11,12 +11,12 @@ import ru.itmo.user.model.dto.response.ProductResponse
 import ru.itmo.user.model.dto.response.ShopResponse
 import ru.itmo.user.model.entity.Shop
 import ru.itmo.user.repository.ShopRepository
-import ru.itmo.user.service.ProductService
+import ru.itmo.user.service.client.ProductServiceClient
 
 @Service
 class ShopService(
     private val shopRepository: ShopRepository,
-    private val productService: ProductService,
+    private val productServiceClient: ProductServiceClient,
     private val userService: UserService
 ) {
 
@@ -44,7 +44,7 @@ class ShopService(
             throw ResourceNotFoundException("Магазин с ID $shopId не найден")
         }
 
-        return productService.getProductsByShopId(shopId, page, pageSize)
+        return productServiceClient.getProductsByShopId(shopId, page, pageSize)
     }
 
     @Transactional
@@ -108,7 +108,7 @@ class ShopService(
 
     private fun Shop.toResponse(): ShopResponse {
         val seller = userService.getUserById(this.sellerId)
-        val productCount = productService.countProductsByShopId(this.id)
+        val productCount = productServiceClient.countProductsByShopId(this.id)
 
         return ShopResponse(
             id = this.id,

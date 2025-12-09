@@ -10,12 +10,13 @@ import ru.itmo.product.model.dto.response.CommentResponse
 import ru.itmo.product.model.dto.response.PaginatedResponse
 import ru.itmo.product.model.entity.Comment
 import ru.itmo.product.repository.CommentRepository
+import ru.itmo.product.service.client.UserServiceClient
 
 @Service
 class CommentService(
     private val commentRepository: CommentRepository,
     @Lazy private val productService: ProductService,
-    private val userService: UserService
+    private val userServiceClient: UserServiceClient
 ) {
 
     fun getProductComments(productId: Long, page: Int, pageSize: Int): PaginatedResponse<CommentResponse> {
@@ -29,7 +30,7 @@ class CommentService(
         return PaginatedResponse(
             data = commentPage.content.map { comment ->
                 
-                val user = userService.getUserById(comment.userId)
+                val user = userServiceClient.getUserById(comment.userId)
                 
                 CommentResponse(
                     id = comment.id,
@@ -63,7 +64,7 @@ class CommentService(
         )
         val savedComment = commentRepository.save(comment)
         
-        val user = userService.getUserById(userId)
+        val user = userServiceClient.getUserById(userId)
 
         return CommentResponse(
             id = savedComment.id,
@@ -93,7 +94,7 @@ class CommentService(
 
         val savedComment = commentRepository.save(updatedComment)
         
-        val user = userService.getUserById(userId)
+        val user = userServiceClient.getUserById(userId)
 
         return CommentResponse(
             id = savedComment.id,

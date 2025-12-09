@@ -13,13 +13,15 @@ import ru.itmo.product.model.entity.Product
 import ru.itmo.product.model.enums.ProductStatus
 import ru.itmo.product.repository.ProductRepository
 import org.springframework.data.domain.PageRequest
+import ru.itmo.product.service.client.ShopServiceClient
+import ru.itmo.product.service.client.UserServiceClient
 
 @Service
 class ProductService(
     private val productRepository: ProductRepository,
-    @Lazy private val shopService: ShopService,
+    private val shopServiceClient: ShopServiceClient,
     @Lazy private val commentService: CommentService,
-    private val userService: UserService
+    private val userServiceClient: UserServiceClient
 ) {
 
     fun getApprovedProducts(page: Int, pageSize: Int): PaginatedResponse<ProductResponse> {
@@ -76,7 +78,7 @@ class ProductService(
         sellerId: Long
     ): ProductResponse {
         
-        val shop = shopService.getShopById(shopId)
+        val shop = shopServiceClient.getShopById(shopId)
 
         if (shop.sellerId != sellerId) {
             throw ForbiddenException("Only shop owner can add products")
@@ -104,7 +106,7 @@ class ProductService(
         val product = productRepository.findById(productId)
             .orElseThrow { ResourceNotFoundException("Товар с ID $productId не найден") }
 
-        val user = userService.getUserById(userId)
+        val user = userServiceClient.getUserById(userId)
 
         if (product.sellerId != userId && !user.roles.contains("MODERATOR")) {
             throw ForbiddenException("У вас нет прав для обновления этого товара")
@@ -126,7 +128,7 @@ class ProductService(
         val product = productRepository.findById(productId)
             .orElseThrow { ResourceNotFoundException("Товар с ID $productId не найден") }
 
-        val user = userService.getUserById(userId)
+        val user = userServiceClient.getUserById(userId)
 
         if (product.sellerId != userId && !user.roles.contains("MODERATOR")) {
             throw ForbiddenException("У вас нет прав для удаления этого товара")
@@ -155,7 +157,7 @@ class ProductService(
     
 
     fun approveProduct(productId: Long, moderatorId: Long): ProductResponse {
-        val moderator = userService.getUserById(moderatorId)
+        val moderator = userServiceClient.getUserById(moderatorId)
         if (!moderator.roles.contains("MODERATOR") && !moderator.roles.contains("ADMIN")) {
             throw ForbiddenException("Только модераторы и администраторы могут одобрять товары")
         }
@@ -173,7 +175,7 @@ class ProductService(
     }
 
     fun rejectProduct(productId: Long, moderatorId: Long, reason: String): ProductResponse {
-        val moderator = userService.getUserById(moderatorId)
+        val moderator = userServiceClient.getUserById(moderatorId)
         if (!moderator.roles.contains("MODERATOR") && !moderator.roles.contains("ADMIN")) {
             throw ForbiddenException("Только модераторы и администраторы могут отклонять товары")
         }

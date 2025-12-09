@@ -104,6 +104,89 @@ class ProductController(
         return ResponseEntity.ok(productService.getApprovedProductsInfinite(page, pageSize))
     }
 
+    @GetMapping("/shops/{shopId}")
+    @Operation(
+        summary = "Получить товары магазина (пагинация)",
+        description = "Возвращает товары конкретного магазина. Доступно для всех пользователей"
+    )
+    @ApiResponses(
+        value = [
+            ApiResponse(
+                responseCode = "200",
+                description = "Товары магазина успешно получены",
+                content = [Content(schema = Schema(implementation = PaginatedResponse::class))]
+            ),
+            ApiResponse(
+                responseCode = "400",
+                description = "BadRequestException: некорректные параметры пагинации или некорректный shopId"
+            ),
+            ApiResponse(
+                responseCode = "404",
+                description = "ResourceNotFoundException: магазин не найден"
+            ),
+            ApiResponse(
+                responseCode = "500",
+                description = "Internal server error"
+            )
+        ]
+    )
+    fun getProductsByShopId(
+        @PathVariable
+        @Parameter(description = "ID магазина", example = "1")
+        @Min(1, message = "shopId должен быть больше 0")
+        shopId: Long,
+        @RequestParam(defaultValue = "1")
+        @Parameter(description = "Номер страницы (начиная с 1)", example = "1")
+        @Min(1, message = "page должен быть больше 0")
+        page: Int,
+        @RequestParam(defaultValue = "20")
+        @Parameter(description = "Количество товаров на странице", example = "20")
+        @Min(1, message = "pageSize должен быть больше 0")
+        @Max(50, message = "pageSize не может превышать 50")
+        pageSize: Int
+    ): ResponseEntity<PaginatedResponse<ProductResponse>> {
+        val response = productService.getProductsByShopId(shopId, page, pageSize)
+        return ResponseEntity.ok()
+            .header("X-Total-Count", response.totalElements.toString())
+            .header("X-Total-Pages", response.totalPages.toString())
+            .body(response)
+    }
+
+    @GetMapping("/shops/{shopId}/count")
+    @Operation(
+        summary = "Подсчет товаров в магазине",
+        description = "Возвращает количество товаров в магазине"
+    )
+    @ApiResponses(
+        value = [
+            ApiResponse(
+                responseCode = "200",
+                description = "Количество товаров успешно получено"
+            ),
+            ApiResponse(
+                responseCode = "400",
+                description = "BadRequestException: некорректный shopId"
+            ),
+            ApiResponse(
+                responseCode = "404",
+                description = "ResourceNotFoundException: магазин не найден"
+            ),
+            ApiResponse(
+                responseCode = "500",
+                description = "Internal server error"
+            )
+        ]
+    )
+    fun countProductsByShopId(
+        @PathVariable
+        @Parameter(description = "ID магазина", example = "1")
+        @Min(1, message = "shopId должен быть больше 0")
+        shopId: Long
+    ): ResponseEntity<Long> {
+        return ResponseEntity.ok(productService.countProductsByShopId(shopId))
+    }
+
+
     @GetMapping("/search")
     @Operation(
         summary = "Поиск товаров по ключевым словам",
