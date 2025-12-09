@@ -17,15 +17,15 @@ import org.springframework.test.web.servlet.delete
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
 import org.testcontainers.containers.PostgreSQLContainer
-import ru.itmo.market.repository.*
-import ru.itmo.market.user_domain.model.entity.Shop
-import ru.itmo.market.model.entity.Product
-import ru.itmo.market.model.dto.request.CreateProductRequest
-import ru.itmo.market.model.dto.request.UpdateProductRequest
-import ru.itmo.market.user_domain.model.enums.UserRole
-import ru.itmo.market.model.enums.ProductStatus
-import ru.itmo.market.user_domain.repository.ShopRepository
-import ru.itmo.market.user_domain.repository.UserRepository
+import ru.itmo.product.repository.*
+import ru.itmo.product.model.entity.Shop
+import ru.itmo.product.model.entity.Product
+import ru.itmo.product.model.dto.request.CreateProductRequest
+import ru.itmo.product.model.dto.request.UpdateProductRequest
+import ru.itmo.product.model.enums.UserRole
+import ru.itmo.product.model.enums.ProductStatus
+import ru.itmo.product.repository.ShopRepository
+import ru.itmo.product.repository.UserRepository
 import java.math.BigDecimal
 
 @SpringBootTest

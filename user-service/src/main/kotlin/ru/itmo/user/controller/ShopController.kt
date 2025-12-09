@@ -13,12 +13,12 @@ import jakarta.validation.constraints.Min
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
-import ru.itmo.market.model.dto.request.CreateShopRequest
-import ru.itmo.market.model.dto.request.UpdateShopRequest
-import ru.itmo.market.model.dto.response.PaginatedResponse
-import ru.itmo.market.model.dto.response.ProductResponse
-import ru.itmo.market.model.dto.response.ShopResponse
-import ru.itmo.market.service.ShopService
+import ru.itmo.user.model.dto.request.CreateShopRequest
+import ru.itmo.user.model.dto.request.UpdateShopRequest
+import ru.itmo.user.model.dto.response.PaginatedResponse
+import ru.itmo.user.model.dto.response.ProductResponse
+import ru.itmo.user.model.dto.response.ShopResponse
+import ru.itmo.user.service.ShopService
 
 @RestController
 @RequestMapping("/api/shops")

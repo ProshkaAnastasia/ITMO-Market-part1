@@ -1,17 +1,17 @@
-package ru.itmo.market.user_domain.service
+package ru.itmo.user.service
 
 import org.springframework.data.domain.PageRequest
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import ru.itmo.market.exception.ConflictException
-import ru.itmo.market.exception.ForbiddenException
-import ru.itmo.market.exception.ResourceNotFoundException
-import ru.itmo.market.model.dto.response.PaginatedResponse
-import ru.itmo.market.model.dto.response.ProductResponse
-import ru.itmo.market.model.dto.response.ShopResponse
-import ru.itmo.market.user_domain.model.entity.Shop
-import ru.itmo.market.user_domain.repository.ShopRepository
-import ru.itmo.market.service.ProductService
+import ru.itmo.user.exception.ConflictException
+import ru.itmo.user.exception.ForbiddenException
+import ru.itmo.user.exception.ResourceNotFoundException
+import ru.itmo.user.model.dto.response.PaginatedResponse
+import ru.itmo.user.model.dto.response.ProductResponse
+import ru.itmo.user.model.dto.response.ShopResponse
+import ru.itmo.user.model.entity.Shop
+import ru.itmo.user.repository.ShopRepository
+import ru.itmo.user.service.ProductService
 
 @Service
 class ShopService(

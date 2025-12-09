@@ -2,9 +2,9 @@ package ru.itmo.order.integration
 
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Component
-import ru.itmo.market.user_domain.model.entity.User
-import ru.itmo.market.user_domain.model.enums.UserRole
-import ru.itmo.market.user_domain.repository.UserRepository
+import ru.itmo.order.model.entity.User
+import ru.itmo.order.model.enums.UserRole
+import ru.itmo.order.repository.UserRepository
 import java.time.LocalDateTime
 
 @Component

@@ -8,10 +8,10 @@ import org.junit.jupiter.api.extension.ExtendWith
 import org.mockito.Mock
 import org.mockito.junit.jupiter.MockitoExtension
 import org.mockito.kotlin.*
-import ru.itmo.market.exception.ResourceNotFoundException
-import ru.itmo.market.user_domain.model.entity.User
-import ru.itmo.market.user_domain.model.enums.UserRole
-import ru.itmo.market.user_domain.repository.UserRepository
+import ru.itmo.user.exception.ResourceNotFoundException
+import ru.itmo.user.model.entity.User
+import ru.itmo.user.model.enums.UserRole
+import ru.itmo.user.repository.UserRepository
 import java.time.LocalDateTime
 import java.util.*
 

@@ -1,6 +1,5 @@
 package ru.itmo.order.controller
 
-
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.media.Content
@@ -12,9 +11,9 @@ import jakarta.validation.Valid
 import jakarta.validation.constraints.Min
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
-import ru.itmo.market.model.dto.request.*
-import ru.itmo.market.model.dto.response.*
-import ru.itmo.market.service.*
+import ru.itmo.order.model.dto.request.*
+import ru.itmo.order.model.dto.response.*
+import ru.itmo.order.service.*
 
 
 @RestController

@@ -3,15 +3,15 @@ package ru.itmo.product.service
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.context.annotation.Lazy
-import ru.itmo.market.exception.ForbiddenException
-import ru.itmo.market.exception.ResourceNotFoundException
-import ru.itmo.market.model.dto.request.UpdateProductRequest
-import ru.itmo.market.model.dto.response.ProductResponse
-import ru.itmo.market.model.dto.response.PaginatedResponse
-import ru.itmo.market.model.dto.response.InfiniteScrollResponse
-import ru.itmo.market.model.entity.Product
-import ru.itmo.market.model.enums.ProductStatus
-import ru.itmo.market.repository.ProductRepository
+import ru.itmo.product.exception.ForbiddenException
+import ru.itmo.product.exception.ResourceNotFoundException
+import ru.itmo.product.model.dto.request.UpdateProductRequest
+import ru.itmo.product.model.dto.response.ProductResponse
+import ru.itmo.product.model.dto.response.PaginatedResponse
+import ru.itmo.product.model.dto.response.InfiniteScrollResponse
+import ru.itmo.product.model.entity.Product
+import ru.itmo.product.model.enums.ProductStatus
+import ru.itmo.product.repository.ProductRepository
 import org.springframework.data.domain.PageRequest
 
 @Service

@@ -16,9 +16,9 @@ import org.springframework.test.web.servlet.delete
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
 import org.testcontainers.containers.PostgreSQLContainer
-import ru.itmo.market.user_domain.repository.UserRepository
-import ru.itmo.market.model.dto.request.UpdateProfileRequest
-import ru.itmo.market.user_domain.model.enums.UserRole
+import ru.itmo.user.repository.UserRepository
+import ru.itmo.user.model.dto.request.UpdateProfileRequest
+import ru.itmo.user.model.enums.UserRole
 
 @SpringBootTest
 @AutoConfigureMockMvc

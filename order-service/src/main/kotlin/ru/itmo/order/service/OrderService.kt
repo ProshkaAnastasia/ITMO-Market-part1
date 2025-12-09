@@ -3,16 +3,16 @@ package ru.itmo.order.service
 import org.springframework.data.domain.PageRequest
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import ru.itmo.market.exception.BadRequestException
-import ru.itmo.market.exception.ResourceNotFoundException
-import ru.itmo.market.model.dto.response.OrderResponse
+import ru.itmo.order.exception.BadRequestException
+import ru.itmo.order.exception.ResourceNotFoundException
+import ru.itmo.order.model.dto.response.OrderResponse
 import ru.itmo.order.model.dto.response.OrderItemResponse
-import ru.itmo.market.model.dto.response.PaginatedResponse
-import ru.itmo.market.model.entity.Order
-import ru.itmo.market.model.entity.OrderItem
-import ru.itmo.market.model.enums.OrderStatus
-import ru.itmo.market.repository.OrderRepository
-import ru.itmo.market.repository.OrderItemRepository
+import ru.itmo.order.model.dto.response.PaginatedResponse
+import ru.itmo.order.model.entity.Order
+import ru.itmo.order.model.entity.OrderItem
+import ru.itmo.order.model.enums.OrderStatus
+import ru.itmo.order.repository.OrderRepository
+import ru.itmo.order.repository.OrderItemRepository
 import java.math.BigDecimal
 
 @Service

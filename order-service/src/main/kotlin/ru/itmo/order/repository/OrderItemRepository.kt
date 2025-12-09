@@ -2,7 +2,7 @@ package ru.itmo.order.repository
 
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.stereotype.Repository
-import ru.itmo.market.model.entity.*
+import ru.itmo.order.model.entity.*
 import java.util.Optional
 
 @Repository

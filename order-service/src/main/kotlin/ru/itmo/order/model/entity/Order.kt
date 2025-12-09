@@ -3,6 +3,7 @@ package ru.itmo.order.model.entity
 import jakarta.persistence.*
 import org.hibernate.annotations.CreationTimestamp
 import org.hibernate.annotations.UpdateTimestamp
+import ru.itmo.order.model.enums.OrderStatus
 import java.time.LocalDateTime
 
 @Entity
@@ -20,7 +21,7 @@ data class Order(
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    val status: ru.itmo.market.model.enums.OrderStatus = ru.itmo.market.model.enums.OrderStatus.CART,
+    val status: OrderStatus = OrderStatus.CART,
 
     @Column(name = "delivery_address", columnDefinition = "TEXT")
     val deliveryAddress: String? = null,

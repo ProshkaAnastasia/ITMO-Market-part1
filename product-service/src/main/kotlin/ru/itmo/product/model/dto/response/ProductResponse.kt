@@ -1,4 +1,4 @@
-package ru.itmo.user.model.dto.response
+package ru.itmo.product.model.dto.response
 
 import java.math.BigDecimal
 import java.time.LocalDateTime

@@ -1,4 +1,4 @@
-package ru.itmo.user.model.dto.request
+package ru.itmo.order.model.dto.request
 
 import jakarta.validation.constraints.*
 import java.math.BigDecimal

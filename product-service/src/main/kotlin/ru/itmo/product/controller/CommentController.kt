@@ -1,6 +1,5 @@
 package ru.itmo.product.controller
 
-
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.media.Content
@@ -13,12 +12,11 @@ import jakarta.validation.constraints.Min
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
-import ru.itmo.market.model.dto.request.CreateCommentRequest
-import ru.itmo.market.model.dto.request.UpdateCommentRequest
-import ru.itmo.market.model.dto.response.CommentResponse
-import ru.itmo.market.model.dto.response.PaginatedResponse
-import ru.itmo.market.service.CommentService
-
+import ru.itmo.product.model.dto.request.CreateCommentRequest
+import ru.itmo.product.model.dto.request.UpdateCommentRequest
+import ru.itmo.product.model.dto.response.CommentResponse
+import ru.itmo.product.model.dto.response.PaginatedResponse
+import ru.itmo.product.service.CommentService
 
 @RestController
 @RequestMapping("/api/products/{productId}/comments")

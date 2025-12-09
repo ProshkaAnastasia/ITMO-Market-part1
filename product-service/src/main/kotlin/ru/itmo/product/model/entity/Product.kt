@@ -4,6 +4,7 @@ import jakarta.persistence.*
 import jakarta.validation.constraints.*
 import org.hibernate.annotations.CreationTimestamp
 import org.hibernate.annotations.UpdateTimestamp
+import ru.itmo.product.model.enums.ProductStatus
 import java.time.LocalDateTime
 
 @Entity
@@ -35,7 +36,7 @@ data class Product(
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    val status: ru.itmo.market.model.enums.ProductStatus = ru.itmo.market.model.enums.ProductStatus.PENDING,
+    val status: ProductStatus = ProductStatus.PENDING,
 
     @Column(name = "rejection_reason", columnDefinition = "TEXT")
     val rejectionReason: String? = null,

@@ -14,12 +14,12 @@ import jakarta.validation.constraints.NotBlank
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
-import ru.itmo.market.model.dto.request.CreateProductRequest
-import ru.itmo.market.model.dto.request.UpdateProductRequest
-import ru.itmo.market.model.dto.response.InfiniteScrollResponse
-import ru.itmo.market.model.dto.response.PaginatedResponse
-import ru.itmo.market.model.dto.response.ProductResponse
-import ru.itmo.market.service.ProductService
+import ru.itmo.product.model.dto.request.CreateProductRequest
+import ru.itmo.product.model.dto.request.UpdateProductRequest
+import ru.itmo.product.model.dto.response.InfiniteScrollResponse
+import ru.itmo.product.model.dto.response.PaginatedResponse
+import ru.itmo.product.model.dto.response.ProductResponse
+import ru.itmo.product.service.ProductService
 
 @RestController
 @RequestMapping("/api/products")

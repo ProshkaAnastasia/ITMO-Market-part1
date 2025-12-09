@@ -13,10 +13,10 @@ import org.springframework.test.web.servlet.get
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
 import org.testcontainers.containers.PostgreSQLContainer
-import ru.itmo.market.user_domain.model.enums.UserRole
-import ru.itmo.market.repository.*
-import ru.itmo.market.user_domain.repository.ShopRepository
-import ru.itmo.market.user_domain.repository.UserRepository
+import ru.itmo.product.model.enums.UserRole
+import ru.itmo.product.repository.*
+import ru.itmo.product.repository.ShopRepository
+import ru.itmo.product.repository.UserRepository
 
 @SpringBootTest
 @AutoConfigureMockMvc

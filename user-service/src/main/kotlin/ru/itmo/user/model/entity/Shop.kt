@@ -1,4 +1,4 @@
-package ru.itmo.market.user_domain.model.entity
+package ru.itmo.user.model.entity
 
 import jakarta.persistence.*
 import jakarta.validation.constraints.*

@@ -8,18 +8,14 @@ import org.junit.jupiter.api.extension.ExtendWith
 import org.mockito.Mock
 import org.mockito.junit.jupiter.MockitoExtension
 import org.mockito.kotlin.*
-import ru.itmo.market.exception.ForbiddenException
-import ru.itmo.market.exception.ResourceNotFoundException
-import ru.itmo.market.model.dto.response.PaginatedResponse
-import ru.itmo.market.model.dto.response.ProductResponse
-import ru.itmo.market.model.dto.response.UserResponse
-import ru.itmo.market.user_domain.model.entity.Shop
-import ru.itmo.market.model.enums.ProductStatus
-
-
-
-
-import ru.itmo.market.user_domain.repository.ShopRepository
+import ru.itmo.user.exception.ForbiddenException
+import ru.itmo.user.exception.ResourceNotFoundException
+import ru.itmo.user.model.dto.response.PaginatedResponse
+import ru.itmo.user.model.dto.response.ProductResponse
+import ru.itmo.user.model.dto.response.UserResponse
+import ru.itmo.user.model.entity.Shop
+import ru.itmo.user.model.enums.ProductStatus
+import ru.itmo.user.repository.ShopRepository
 import java.math.BigDecimal
 import java.time.LocalDateTime
 import java.util.*

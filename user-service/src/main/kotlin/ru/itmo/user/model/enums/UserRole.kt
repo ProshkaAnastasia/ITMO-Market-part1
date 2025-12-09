@@ -1,4 +1,4 @@
-package ru.itmo.market.user_domain.model.enums
+package ru.itmo.user.model.enums
 
 enum class UserRole {
     USER,

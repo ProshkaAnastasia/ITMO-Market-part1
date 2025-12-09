@@ -1,4 +1,4 @@
-package ru.itmo.user.model.dto.response
+package ru.itmo.order.model.dto.response
 
 data class PaginatedResponse<T>(
     val data: List<T>,

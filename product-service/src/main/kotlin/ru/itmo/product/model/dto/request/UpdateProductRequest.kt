@@ -1,4 +1,4 @@
-package ru.itmo.user.model.dto.request
+package ru.itmo.product.model.dto.request
 
 import java.math.BigDecimal
 

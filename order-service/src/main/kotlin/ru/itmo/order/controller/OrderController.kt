@@ -12,10 +12,10 @@ import jakarta.validation.constraints.Min
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
-import ru.itmo.market.model.dto.request.CreateOrderRequest
-import ru.itmo.market.model.dto.response.OrderResponse
-import ru.itmo.market.model.dto.response.PaginatedResponse
-import ru.itmo.market.service.OrderService
+import ru.itmo.order.model.dto.request.CreateOrderRequest
+import ru.itmo.order.model.dto.response.OrderResponse
+import ru.itmo.order.model.dto.response.PaginatedResponse
+import ru.itmo.order.service.OrderService
 
 @RestController
 @RequestMapping("/api/orders")

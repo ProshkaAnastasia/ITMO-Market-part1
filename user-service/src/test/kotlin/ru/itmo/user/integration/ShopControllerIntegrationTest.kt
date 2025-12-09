@@ -12,8 +12,8 @@ import org.springframework.test.web.servlet.get
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
 import org.testcontainers.containers.PostgreSQLContainer
-import ru.itmo.market.user_domain.repository.ShopRepository
-import ru.itmo.market.user_domain.repository.UserRepository
+import ru.itmo.user.repository.ShopRepository
+import ru.itmo.user.repository.UserRepository
 
 @SpringBootTest
 @AutoConfigureMockMvc

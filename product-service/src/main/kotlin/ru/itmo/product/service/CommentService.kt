@@ -4,12 +4,12 @@ import org.springframework.data.domain.PageRequest
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.context.annotation.Lazy
-import ru.itmo.market.exception.ForbiddenException
-import ru.itmo.market.exception.ResourceNotFoundException
-import ru.itmo.market.model.dto.response.CommentResponse
-import ru.itmo.market.model.dto.response.PaginatedResponse
-import ru.itmo.market.model.entity.Comment
-import ru.itmo.market.repository.CommentRepository
+import ru.itmo.product.exception.ForbiddenException
+import ru.itmo.product.exception.ResourceNotFoundException
+import ru.itmo.product.model.dto.response.CommentResponse
+import ru.itmo.product.model.dto.response.PaginatedResponse
+import ru.itmo.product.model.entity.Comment
+import ru.itmo.product.repository.CommentRepository
 
 @Service
 class CommentService(

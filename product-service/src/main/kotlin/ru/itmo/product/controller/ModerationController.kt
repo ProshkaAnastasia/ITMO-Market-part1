@@ -11,10 +11,10 @@ import jakarta.validation.Valid
 import jakarta.validation.constraints.Min
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
-import ru.itmo.market.model.dto.request.RejectProductRequest
-import ru.itmo.market.model.dto.response.PaginatedResponse
-import ru.itmo.market.model.dto.response.ProductResponse
-import ru.itmo.market.service.ModerationService
+import ru.itmo.product.model.dto.request.RejectProductRequest
+import ru.itmo.product.model.dto.response.PaginatedResponse
+import ru.itmo.product.model.dto.response.ProductResponse
+import ru.itmo.product.service.ModerationService
 
 @RestController
 @RequestMapping("/api/moderation")

@@ -1,13 +1,13 @@
-package ru.itmo.market.user_domain.service
+package ru.itmo.user.service
 
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import ru.itmo.market.exception.BadRequestException
-import ru.itmo.market.exception.ConflictException
-import ru.itmo.market.exception.ResourceNotFoundException
-import ru.itmo.market.model.dto.response.UserResponse
-import ru.itmo.market.user_domain.model.entity.User
-import ru.itmo.market.user_domain.repository.UserRepository
+import ru.itmo.user.exception.BadRequestException
+import ru.itmo.user.exception.ConflictException
+import ru.itmo.user.exception.ResourceNotFoundException
+import ru.itmo.user.model.dto.response.UserResponse
+import ru.itmo.user.model.entity.User
+import ru.itmo.user.repository.UserRepository
 
 @Service
 class UserService(

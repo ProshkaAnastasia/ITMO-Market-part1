@@ -2,9 +2,9 @@ package ru.itmo.product.service
 
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import ru.itmo.market.exception.ForbiddenException
-import ru.itmo.market.model.dto.response.ProductResponse
-import ru.itmo.market.model.dto.response.PaginatedResponse
+import ru.itmo.product.exception.ForbiddenException
+import ru.itmo.product.model.dto.response.ProductResponse
+import ru.itmo.product.model.dto.response.PaginatedResponse
 
 @Service
 class ModerationService(

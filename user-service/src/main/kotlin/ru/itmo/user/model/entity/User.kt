@@ -1,10 +1,10 @@
-package ru.itmo.market.user_domain.model.entity
+package ru.itmo.user.model.entity
 
 import jakarta.persistence.*
 import jakarta.validation.constraints.*
 import org.hibernate.annotations.CreationTimestamp
 import org.hibernate.annotations.UpdateTimestamp
-import ru.itmo.market.user_domain.model.enums.UserRole
+import ru.itmo.user.model.enums.UserRole
 import java.time.LocalDateTime
 
 @Entity

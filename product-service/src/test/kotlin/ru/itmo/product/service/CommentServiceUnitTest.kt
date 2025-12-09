@@ -10,11 +10,11 @@ import org.mockito.junit.jupiter.MockitoExtension
 import org.mockito.kotlin.*
 import org.springframework.data.domain.PageImpl
 import org.springframework.data.domain.PageRequest
-import ru.itmo.market.exception.ForbiddenException
-import ru.itmo.market.exception.ResourceNotFoundException
-import ru.itmo.market.model.dto.response.UserResponse
-import ru.itmo.market.model.entity.Comment
-import ru.itmo.market.repository.CommentRepository
+import ru.itmo.product.exception.ForbiddenException
+import ru.itmo.product.exception.ResourceNotFoundException
+import ru.itmo.product.model.dto.response.UserResponse
+import ru.itmo.product.model.entity.Comment
+import ru.itmo.product.repository.CommentRepository
 import java.time.LocalDateTime
 import java.util.*
 

@@ -1,4 +1,4 @@
-package ru.itmo.user.model.dto.request
+package ru.itmo.order.model.dto.request
 
 data class UpdateProfileRequest(
     val email: String? = null,
