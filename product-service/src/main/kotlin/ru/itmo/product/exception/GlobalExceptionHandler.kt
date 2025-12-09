@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.ControllerAdvice
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.context.request.WebRequest
 import org.springframework.web.method.annotation.HandlerMethodValidationException
-import ru.itmo.market.model.dto.response.ErrorResponse
+import ru.itmo.product.model.dto.response.ErrorResponse
 import java.time.LocalDateTime
 
 

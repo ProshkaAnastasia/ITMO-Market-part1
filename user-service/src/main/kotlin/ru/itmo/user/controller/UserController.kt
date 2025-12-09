@@ -11,10 +11,10 @@ import jakarta.validation.Valid
 import jakarta.validation.constraints.Min
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
-import ru.itmo.market.model.dto.request.UpdateProfileRequest
-import ru.itmo.market.model.dto.response.UserResponse
-import ru.itmo.market.service.UserService
-import ru.itmo.market.exception.ForbiddenException
+import ru.itmo.user.model.dto.request.UpdateProfileRequest
+import ru.itmo.user.model.dto.response.UserResponse
+import ru.itmo.user.service.UserService
+import ru.itmo.user.exception.ForbiddenException
 
 @RestController
 @RequestMapping("/api/users")
