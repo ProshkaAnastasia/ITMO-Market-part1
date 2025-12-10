@@ -2,7 +2,7 @@ plugins {
     kotlin("jvm") version "1.9.25"
     kotlin("plugin.spring") version "1.9.25"
     kotlin("plugin.jpa") version "1.9.25"
-    id("org.springframework.boot") version "3.3.7"
+    id("org.springframework.boot") //version "3.3.7"
     id("io.spring.dependency-management") version "1.1.6"
 }
 
@@ -26,8 +26,11 @@ dependencies {
 
     // === База данных ===
     implementation("org.postgresql:postgresql")
-    implementation("org.flywaydb:flyway-core")
-    implementation("org.flywaydb:flyway-database-postgresql")
+    // implementation("org.flywaydb:flyway-core")
+    // implementation("org.flywaydb:flyway-database-postgresql")
+
+    implementation("org.flywaydb:flyway-core:10.15.0")
+    implementation("org.flywaydb:flyway-database-postgresql:10.15.0")
 
     // === Spring Cloud Microservices ===
     implementation("org.springframework.cloud:spring-cloud-starter-netflix-eureka-client:4.1.0")

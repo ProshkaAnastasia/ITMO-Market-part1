@@ -2,7 +2,7 @@ plugins {
     kotlin("jvm") version "1.9.25"
     kotlin("plugin.spring") version "1.9.25"
     kotlin("plugin.jpa") version "1.9.25"
-    id("org.springframework.boot") version "3.3.7"
+    id("org.springframework.boot") //version "3.2"
     id("io.spring.dependency-management") version "1.1.6"
 }
 
@@ -11,7 +11,12 @@ java {
         languageVersion.set(JavaLanguageVersion.of(17))
     }
 }
-
+dependencyManagement {
+    imports {
+        // ✅ UPDATE THIS VERSION to 2023.0.4 to match Spring Boot 3.3.7
+        mavenBom("org.springframework.cloud:spring-cloud-dependencies:2023.0.4")
+    }
+}
 dependencies {
     // === Spring Boot основное ===
     implementation("org.springframework.boot:spring-boot-starter-web")

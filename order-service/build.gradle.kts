@@ -2,7 +2,7 @@ plugins {
     kotlin("jvm") version "1.9.25"
     kotlin("plugin.spring") version "1.9.25"
     kotlin("plugin.jpa") version "1.9.25"
-    id("org.springframework.boot") version "3.3.7"
+    id("org.springframework.boot") //version "3.3.7"
     id("io.spring.dependency-management") version "1.1.6"
 }
 
@@ -11,7 +11,12 @@ java {
         languageVersion.set(JavaLanguageVersion.of(17))
     }
 }
-
+dependencyManagement {
+    imports {
+        // ✅ UPDATE THIS VERSION to 2023.0.4 to match Spring Boot 3.3.7
+        mavenBom("org.springframework.cloud:spring-cloud-dependencies:2024.0.1")
+    }
+}
 dependencies {
     // === Spring Boot основное ===
     implementation("org.springframework.boot:spring-boot-starter-web")
@@ -26,13 +31,18 @@ dependencies {
 
     // === База данных ===
     implementation("org.postgresql:postgresql")
-    implementation("org.flywaydb:flyway-core")
-    implementation("org.flywaydb:flyway-database-postgresql")
+    // implementation("org.flywaydb:flyway-core")
+    // implementation("org.flywaydb:flyway-database-postgresql")
+    implementation("org.flywaydb:flyway-core:10.15.0")
+    implementation("org.flywaydb:flyway-database-postgresql:10.15.0")
+    // // === Spring Cloud Microservices ===
+    // implementation("org.springframework.cloud:spring-cloud-starter-netflix-eureka-client:4.1.0")
+    // implementation("org.springframework.cloud:spring-cloud-starter-config:4.1.0")
+    // implementation("org.springframework.cloud:spring-cloud-starter-openfeign:4.1.0")
 
-    // === Spring Cloud Microservices ===
-    implementation("org.springframework.cloud:spring-cloud-starter-netflix-eureka-client:4.1.0")
-    implementation("org.springframework.cloud:spring-cloud-starter-config:4.1.0")
-    implementation("org.springframework.cloud:spring-cloud-starter-openfeign:4.1.0")
+    implementation("org.springframework.cloud:spring-cloud-starter-netflix-eureka-client") // No version!
+    implementation("org.springframework.cloud:spring-cloud-starter-config")               // No version!
+    implementation("org.springframework.cloud:spring-cloud-starter-openfeign")            // No version!
 
     // === OpenAPI/Swagger ===
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.1.0")

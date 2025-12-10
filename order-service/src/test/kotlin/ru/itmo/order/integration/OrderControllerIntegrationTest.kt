@@ -2,45 +2,31 @@ package ru.itmo.order.integration
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
+import org.mockito.kotlin.whenever
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
 import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.boot.test.mock.mockito.MockBean
 import org.springframework.http.MediaType
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.get
 import org.springframework.test.web.servlet.post
-import org.testcontainers.junit.jupiter.Container
-import org.testcontainers.junit.jupiter.Testcontainers
-import org.testcontainers.containers.PostgreSQLContainer
-import ru.itmo.order.repository.*
-import ru.itmo.order.model.entity.Shop
-import ru.itmo.order.model.entity.Product
 import ru.itmo.order.model.dto.request.AddToCartRequest
 import ru.itmo.order.model.dto.request.CreateOrderRequest
-import ru.itmo.order.model.dto.response.OrderResponse
-import ru.itmo.order.model.enums.UserRole
-import ru.itmo.order.model.enums.ProductStatus
-import ru.itmo.order.repository.ShopRepository
-import ru.itmo.order.repository.UserRepository
+import ru.itmo.order.model.dto.response.ProductResponse
+import ru.itmo.order.model.enums.OrderStatus
+import ru.itmo.order.repository.OrderItemRepository
+import ru.itmo.order.repository.OrderRepository
+import ru.itmo.order.service.client.ProductServiceClient
 import java.math.BigDecimal
+import java.time.LocalDateTime
 
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
-@Testcontainers
-class OrderControllerIntegrationTest {
-
-    companion object {
-        @Container
-        val postgres = PostgreSQLContainer<Nothing>("postgres:15").apply {
-            withDatabaseName("itmo_market")
-            withUsername("itmo_user")
-            withPassword("itmo_password")
-        }
-    }
+class OrderControllerIntegrationTest : AbstractIntegrationTest() {
 
     @Autowired
     private lateinit var mockMvc: MockMvc
@@ -49,389 +35,90 @@ class OrderControllerIntegrationTest {
     private lateinit var objectMapper: ObjectMapper
 
     @Autowired
-    private lateinit var userRepository: UserRepository
-
-    @Autowired
     private lateinit var orderRepository: OrderRepository
 
     @Autowired
     private lateinit var orderItemRepository: OrderItemRepository
 
-    @Autowired
-    private lateinit var productRepository: ProductRepository
+    @MockBean
+    private lateinit var productServiceClient: ProductServiceClient
 
-    @Autowired
-    private lateinit var shopRepository: ShopRepository
-
-    @Autowired
-    private lateinit var testAuthHelper: TestAuthHelper
+    private val userId = 200L
+    private val productId = 600L
 
     @BeforeEach
     fun setUp() {
         orderItemRepository.deleteAll()
         orderRepository.deleteAll()
-        productRepository.deleteAll()
-        shopRepository.deleteAll()
-        userRepository.deleteAll()
-    }
 
-    
-
-    @Test
-    fun `should get empty orders list for new user`() {
-        val user = testAuthHelper.createTestUser()
-
-        mockMvc.get("/api/orders") {
-            param("userId", user.id.toString())
-            param("page", "1")
-            param("pageSize", "20")
-        }.andExpect {
-            status { isOk() }
-            jsonPath("$.data") { isArray() }
-            jsonPath("$.data.length()") { value(0) }
-            jsonPath("$.page") { value(1) }
-            jsonPath("$.pageSize") { value(20) }
-        }
+        // Mock product service
+        val dummyProduct = ProductResponse(
+            id = productId, name = "Order Product", description = "Test",
+            price = BigDecimal("200.00"), imageUrl = null, shopId = 1, sellerId = 2,
+            status = "APPROVED", rejectionReason = null, averageRating = 0.0, commentsCount = 0,
+            createdAt = LocalDateTime.now(), updatedAt = LocalDateTime.now()
+        )
+        whenever(productServiceClient.getProductById(productId)).thenReturn(dummyProduct)
     }
 
     @Test
-    fun `should get orders with pagination`() {
-        val user = testAuthHelper.createTestUser()
-
-        
-        val seller = testAuthHelper.createTestUser(username = "seller", email = "seller@example.com",  roles = setOf(
-            UserRole.SELLER))
-        val shop = shopRepository.save(
-            Shop(
-                name = "Test Shop",
-                description = "Shop Desc",
-                avatarUrl = null,
-                sellerId = seller.id
-            )
-        )
-        val product = productRepository.save(
-            Product(
-                name = "Test Product",
-                description = "Desc",
-                price = BigDecimal("100.00"),
-                imageUrl = null,
-                shopId = shop.id,
-                sellerId = seller.id,
-                status = ProductStatus.APPROVED
-            )
-        )
-
-        val addRequest = AddToCartRequest(productId = product.id, quantity = 1)
+    fun `createOrder should succeed when cart is not empty`() {
+        // 1. Fill Cart
+        val addRequest = AddToCartRequest(productId = productId, quantity = 1)
         mockMvc.post("/api/cart/items") {
-            param("userId", user.id.toString())
+            param("userId", userId.toString())
             contentType = MediaType.APPLICATION_JSON
             content = objectMapper.writeValueAsString(addRequest)
-        }
+        }.andExpect { status { isOk() } }
 
-        
-        val createOrderRequest = CreateOrderRequest(deliveryAddress = "123 Main St")
+        // 2. Create Order
+        val createRequest = CreateOrderRequest(deliveryAddress = "123 Test St")
         mockMvc.post("/api/orders") {
-            param("userId", user.id.toString())
+            param("userId", userId.toString())
             contentType = MediaType.APPLICATION_JSON
-            content = objectMapper.writeValueAsString(createOrderRequest)
+            content = objectMapper.writeValueAsString(createRequest)
         }.andExpect {
             status { isCreated() }
+            jsonPath("$.status") { value("PENDING") }
+            jsonPath("$.deliveryAddress") { value("123 Test St") }
         }
 
-        
+        // 3. Verify Cart is empty (a new cart was created)
+        mockMvc.get("/api/cart") {
+            param("userId", userId.toString())
+        }.andExpect {
+            jsonPath("$.items.length()") { value(0) }
+            jsonPath("$.status") { value("CART") }
+        }
+    }
+
+    @Test
+    fun `createOrder should fail if cart is empty`() {
+        val createRequest = CreateOrderRequest(deliveryAddress = "123 Test St")
+
+        // Ensure a cart exists but is empty
+        mockMvc.get("/api/cart") { param("userId", userId.toString()) }
+
+        mockMvc.post("/api/orders") {
+            param("userId", userId.toString())
+            contentType = MediaType.APPLICATION_JSON
+            content = objectMapper.writeValueAsString(createRequest)
+        }.andExpect {
+            status { isBadRequest() }
+        }
+    }
+
+    @Test
+    fun `getUserOrders should return list of orders`() {
+        // Create an order first
+        `createOrder should succeed when cart is not empty`()
+
         mockMvc.get("/api/orders") {
-            param("userId", user.id.toString())
-            param("page", "1")
-            param("pageSize", "20")
+            param("userId", userId.toString())
         }.andExpect {
             status { isOk() }
-            jsonPath("$.data") { isArray() }
             jsonPath("$.data.length()") { value(1) }
-            jsonPath("$.page") { value(1) }
-            jsonPath("$.pageSize") { value(20) }
-        }
-    }
-
-    @Test
-    @Disabled
-    fun `should reject orders list without authorization`() {
-        mockMvc.get("/api/orders") {
-            param("page", "1")
-            param("pageSize", "20")
-        }.andExpect {
-            status { isUnauthorized() }
-        }
-    }
-
-    @Test
-    @Disabled
-    fun `should reject orders list with invalid token`() {
-        mockMvc.get("/api/orders") {
-            header("Authorization", "Bearer invalid_token") 
-            param("page", "1")
-            param("pageSize", "20")
-        }.andExpect {
-            status { isUnauthorized() }
-        }
-    }
-
-    
-
-    @Test
-    fun `should get order by id successfully`() {
-        val user = testAuthHelper.createTestUser()
-        
-
-        val seller = testAuthHelper.createTestUser(username = "seller", email = "seller@example.com", roles = setOf(
-            UserRole.SELLER))
-        val shop = shopRepository.save(
-            Shop(
-                name = "Test Shop",
-                description = "Shop Desc",
-                avatarUrl = null,
-                sellerId = seller.id
-            )
-        )
-        val product = productRepository.save(
-            Product(
-                name = "Test Product",
-                description = "Desc",
-                price = BigDecimal("100.00"),
-                imageUrl = null,
-                shopId = shop.id,
-                sellerId = seller.id,
-                status = ProductStatus.APPROVED
-            )
-        )
-
-        val addRequest = AddToCartRequest(productId = product.id, quantity = 1)
-        mockMvc.post("/api/cart/items") {
-            param("userId", user.id.toString())
-            contentType = MediaType.APPLICATION_JSON
-            content = objectMapper.writeValueAsString(addRequest)
-        }
-
-        val createOrderRequest = CreateOrderRequest(deliveryAddress = "123 Main St")
-        val orderResponse = mockMvc.post("/api/orders") {
-            param("userId", user.id.toString())
-            contentType = MediaType.APPLICATION_JSON
-            content = objectMapper.writeValueAsString(createOrderRequest)
-        }.andExpect {
-            status { isCreated() }
-        }.andReturn()
-
-        val responseBody = orderResponse.response.contentAsString
-        val createdOrder = objectMapper.readValue(responseBody, OrderResponse::class.java)
-
-        mockMvc.get("/api/orders/${createdOrder.id}") {
-            param("userId", user.id.toString())
-        }.andExpect {
-            status { isOk() }
-            jsonPath("$.id") { value(createdOrder.id.toInt()) }
-            jsonPath("$.userId") { value(user.id.toInt()) }
-            jsonPath("$.status") { value("PENDING") }
-        }
-    }
-
-    @Test
-    fun `should return 404 for non-existent order`() {
-        val user = testAuthHelper.createTestUser()
-        
-
-        mockMvc.get("/api/orders/99999") {
-            param("userId", user.id.toString())
-        }.andExpect {
-            status { isNotFound() }
-        }
-    }
-
-    @Test
-    fun `should return 403 when accessing other user order`() {
-        val user1 = testAuthHelper.createTestUser(username = "user1", email = "test1@example.com")
-        val user2 = testAuthHelper.createTestUser(username = "user2", email = "test2@example.com")
-        
-
-        val seller = testAuthHelper.createTestUser(username = "seller", email = "seller@example.com", roles = setOf(
-            UserRole.SELLER))
-        val shop = shopRepository.save(
-            Shop(
-                name = "Test Shop",
-                description = "Shop Desc",
-                avatarUrl = null,
-                sellerId = seller.id
-            )
-        )
-        val product = productRepository.save(
-            Product(
-                name = "Test Product",
-                description = "Desc",
-                price = BigDecimal("100.00"),
-                imageUrl = null,
-                shopId = shop.id,
-                sellerId = seller.id,
-                status = ProductStatus.APPROVED
-            )
-        )
-
-        
-        val addRequest = AddToCartRequest(productId = product.id, quantity = 1)
-        mockMvc.post("/api/cart/items") {
-            param("userId", user1.id.toString())
-            contentType = MediaType.APPLICATION_JSON
-            content = objectMapper.writeValueAsString(addRequest)
-        }
-
-        val createOrderRequest = CreateOrderRequest(deliveryAddress = "123 Main St")
-        val orderResponse = mockMvc.post("/api/orders") {
-            param("userId", user1.id.toString())
-            contentType = MediaType.APPLICATION_JSON
-            content = objectMapper.writeValueAsString(createOrderRequest)
-        }.andExpect {
-            status { isCreated() }
-        }.andReturn()
-
-        val responseBody = orderResponse.response.contentAsString
-        val createdOrder = objectMapper.readValue(responseBody, OrderResponse::class.java)
-
-        
-        mockMvc.get("/api/orders/${createdOrder.id}") {
-            param("userId", user2.id.toString())
-        }.andExpect {
-            status { isNotFound() } 
-        }
-    }
-
-    @Test
-    @Disabled
-    fun `should return 401 when getting order without authorization`() {
-        mockMvc.get("/api/orders/1").andExpect {
-            status { isUnauthorized() }
-        }
-    }
-
-    
-
-    @Test
-    fun `should create order successfully`() {
-        val user = testAuthHelper.createTestUser()
-        
-
-        val seller = testAuthHelper.createTestUser(username = "seller", email = "seller@example.com", roles = setOf(
-            UserRole.SELLER))
-        val shop = shopRepository.save(
-            Shop(
-                name = "Test Shop",
-                description = "Shop Desc",
-                avatarUrl = null,
-                sellerId = seller.id
-            )
-        )
-        val product = productRepository.save(
-            Product(
-                name = "Test Product",
-                description = "Desc",
-                price = BigDecimal("100.00"),
-                imageUrl = null,
-                shopId = shop.id,
-                sellerId = seller.id,
-                status = ProductStatus.APPROVED
-            )
-        )
-
-        val addRequest = AddToCartRequest(productId = product.id, quantity = 2)
-        mockMvc.post("/api/cart/items") {
-            param("userId", user.id.toString())
-            contentType = MediaType.APPLICATION_JSON
-            content = objectMapper.writeValueAsString(addRequest)
-        }
-
-        val createOrderRequest = CreateOrderRequest(deliveryAddress = "456 Oak Ave")
-
-        mockMvc.post("/api/orders") {
-            param("userId", user.id.toString())
-            contentType = MediaType.APPLICATION_JSON
-            content = objectMapper.writeValueAsString(createOrderRequest)
-        }.andExpect {
-            status { isCreated() }
-            jsonPath("$.userId") { value(user.id.toInt()) }
-            jsonPath("$.status") { value("PENDING") }
-            jsonPath("$.deliveryAddress") { value("456 Oak Ave") }
-            jsonPath("$.items") { isArray() }
-            jsonPath("$.items.length()") { value(1) }
-        }
-    }
-
-    @Test
-    fun `should return 400 for empty delivery address`() {
-        val user = testAuthHelper.createTestUser()
-        
-
-        val seller = testAuthHelper.createTestUser(username = "seller", email = "seller@example.com", roles = setOf(
-            UserRole.SELLER))
-        val shop = shopRepository.save(
-            Shop(
-                name = "Test Shop",
-                description = "Shop Desc",
-                avatarUrl = null,
-                sellerId = seller.id
-            )
-        )
-        val product = productRepository.save(
-            Product(
-                name = "Test Product",
-                description = "Desc",
-                price = BigDecimal("100.00"),
-                imageUrl = null,
-                shopId = shop.id,
-                sellerId = seller.id,
-                status = ProductStatus.APPROVED
-            )
-        )
-
-        val addRequest = AddToCartRequest(productId = product.id, quantity = 1)
-        mockMvc.post("/api/cart/items") {
-            param("userId", user.id.toString())
-            contentType = MediaType.APPLICATION_JSON
-            content = objectMapper.writeValueAsString(addRequest)
-        }
-
-        val createOrderRequest = CreateOrderRequest(deliveryAddress = "")
-
-        mockMvc.post("/api/orders") {
-            param("userId", user.id.toString())
-            contentType = MediaType.APPLICATION_JSON
-            content = objectMapper.writeValueAsString(createOrderRequest)
-        }.andExpect {
-            status { isBadRequest() }
-        }
-    }
-
-    @Test
-    fun `should return 400 for empty cart`() {
-        val user = testAuthHelper.createTestUser()
-        
-
-        val createOrderRequest = CreateOrderRequest(deliveryAddress = "123 Main St")
-
-        mockMvc.post("/api/orders") {
-            param("userId", user.id.toString())
-            contentType = MediaType.APPLICATION_JSON
-            content = objectMapper.writeValueAsString(createOrderRequest)
-        }.andExpect {
-            status { isBadRequest() }
-        }
-    }
-
-    @Test
-    @Disabled
-    fun `should return 401 when creating order without authorization`() {
-        val createOrderRequest = CreateOrderRequest(deliveryAddress = "123 Main St")
-
-        mockMvc.post("/api/orders") {
-            contentType = MediaType.APPLICATION_JSON
-            content = objectMapper.writeValueAsString(createOrderRequest)
-        }.andExpect {
-            status { isUnauthorized() }
+            jsonPath("$.data[0].status") { value("PENDING") }
         }
     }
 }

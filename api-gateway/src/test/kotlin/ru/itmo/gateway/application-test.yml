@@ -6,7 +6,7 @@ spring:
     config:
       enabled: false
   config:
-    import: "optional:none"
+    import: "optional:configserver"
 
   datasource:
     url: jdbc:tc:postgresql:15-alpine:///itmo_market
