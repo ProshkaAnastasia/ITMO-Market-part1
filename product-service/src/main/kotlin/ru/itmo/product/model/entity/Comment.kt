@@ -7,7 +7,7 @@ import org.hibernate.annotations.UpdateTimestamp
 import java.time.LocalDateTime
 
 @Entity
-@Table(name = "comments")
+@Table(name = "comments", schema = "product_service")
 data class Comment(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

@@ -11,6 +11,8 @@ COPY user-service/build.gradle.kts user-service/
 COPY product-service/build.gradle.kts product-service/
 COPY order-service/build.gradle.kts order-service/
 
+COPY config-repo/ config-repo/
+
 RUN gradle :config-server:dependencies --no-daemon 2>&1 | grep -E "^|---|.*" || true
 
 # Stage 2: Builder (только config-server)

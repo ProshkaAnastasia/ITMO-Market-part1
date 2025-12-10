@@ -1,4 +1,4 @@
-CREATE TABLE order_service.order_items (
+CREATE TABLE IF NOT EXISTS order_service.order_items (
     id BIGSERIAL PRIMARY KEY,
     order_id BIGINT NOT NULL REFERENCES order_service.orders(id) ON DELETE CASCADE,
     product_id BIGINT NOT NULL,

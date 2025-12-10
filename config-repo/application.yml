@@ -1,18 +1,37 @@
 spring:
   jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+    show-sql: false
     open-in-view: false
-  servlet:
-    multipart:
-      max-file-size: 10MB
-      max-request-size: 10MB
+
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    baseline-version: 0
+    out-of-order: false
 
 server:
   compression:
     enabled: true
     min-response-size: 1024
 
+eureka:
+  instance:
+    prefer-ip-address: true
+
+logging:
+  level:
+    root: WARN
+
 management:
   endpoints:
     web:
       exposure:
         include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always

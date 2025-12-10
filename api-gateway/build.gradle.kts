@@ -1,55 +1,7 @@
-plugins {
-    kotlin("jvm") version "1.9.25"
-    kotlin("plugin.spring") version "1.9.25"
-    kotlin("plugin.jpa") version "1.9.25"
-    id("org.springframework.boot") version "3.3.7"
-    id("io.spring.dependency-management") version "1.1.6"
-}
-
-java {
-    toolchain {
-        languageVersion.set(JavaLanguageVersion.of(17))
-    }
-}
-
 dependencies {
     // === Spring Cloud Gateway ===
-    implementation("org.springframework.cloud:spring-cloud-starter-gateway:4.1.0")
-    implementation("org.springframework.cloud:spring-cloud-starter-netflix-eureka-client:4.1.0")
-    implementation("org.springframework.cloud:spring-cloud-starter-config:4.1.0")
-
-    // === Kotlin поддержка ===
-    implementation("org.jetbrains.kotlin:kotlin-reflect")
-    implementation("org.jetbrains.kotlin:kotlin-stdlib")
-    implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
-
-    // === Spring Boot базовое ===
-    implementation("org.springframework.boot:spring-boot-starter-actuator")
-    implementation("org.springframework.boot:spring-boot-starter-validation")
-
-    // === OpenAPI/Swagger ===
-    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.1.0")
-
-    // === Development ===
-    developmentOnly("org.springframework.boot:spring-boot-devtools")
-
-    // === Тестирование ===
-    testImplementation("org.springframework.boot:spring-boot-starter-test")
-}
-
-
-kotlin {
-    compilerOptions {
-        freeCompilerArgs.addAll("-Xjsr305=strict")
-    }
-}
-
-allOpen {
-    annotation("jakarta.persistence.Entity")
-    annotation("jakarta.persistence.MappedSuperclass")
-    annotation("jakarta.persistence.Embeddable")
-}
-
-tasks.withType<Test> {
-    useJUnitPlatform()
+    implementation("org.springframework.boot:spring-boot-starter-webflux")
+    implementation("org.springframework.cloud:spring-cloud-starter-netflix-eureka-client")
+    implementation("org.springframework.cloud:spring-cloud-starter-gateway")
+    implementation("org.springframework.cloud:spring-cloud-starter-config")
 }

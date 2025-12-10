@@ -62,7 +62,7 @@ services:
     depends_on:
       - eureka-server
     volumes:
-      - ./config-repo:/config-repo
+      - ./config-repo:/app/config-repo
 
   api-gateway:
     build:
@@ -70,7 +70,7 @@ services:
       dockerfile: ./api-gateway/Dockerfile
     container_name: api-gateway
     environment:
-      SERVER_PORT: 8080
+      SPRING_CLOUD_CONFIG_URI: http://config-server:8888
       EUREKA_CLIENT_SERVICE_URL_DEFAULT_ZONE: http://eureka-server:8761/eureka/
     ports:
       - "8080:8080"

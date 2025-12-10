@@ -7,7 +7,7 @@ import org.hibernate.annotations.UpdateTimestamp
 import java.time.LocalDateTime
 
 @Entity
-@Table(name = "shops", uniqueConstraints = [
+@Table(name = "shops", schema = "user_service", uniqueConstraints = [
     UniqueConstraint(columnNames = ["seller_id"])
 ])
 data class Shop(

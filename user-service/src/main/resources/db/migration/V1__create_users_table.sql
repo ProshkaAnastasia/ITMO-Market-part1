@@ -1,6 +1,6 @@
 CREATE SCHEMA IF NOT EXISTS user_service;
 
-CREATE TABLE user_service.users (
+CREATE TABLE IF NOT EXISTS user_service.users (
     id BIGSERIAL PRIMARY KEY,
     username VARCHAR(32) UNIQUE NOT NULL,
     email VARCHAR(255) UNIQUE NOT NULL,
@@ -11,7 +11,7 @@ CREATE TABLE user_service.users (
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE user_service.user_roles (
+CREATE TABLE IF NOT EXISTS user_service.user_roles (
     user_id BIGINT NOT NULL REFERENCES user_service.users(id) ON DELETE CASCADE,
     role VARCHAR(50) NOT NULL,
     PRIMARY KEY (user_id, role)

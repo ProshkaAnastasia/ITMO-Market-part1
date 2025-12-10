@@ -1,6 +1,6 @@
 CREATE SCHEMA IF NOT EXISTS product_service;
 
-CREATE TABLE product_service.products (
+CREATE TABLE IF NOT EXISTS product_service.products (
     id BIGSERIAL PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
     description TEXT,

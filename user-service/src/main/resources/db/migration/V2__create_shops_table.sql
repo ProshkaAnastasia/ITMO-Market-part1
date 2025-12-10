@@ -1,4 +1,4 @@
-CREATE TABLE user_service.shops (
+CREATE TABLE IF NOT EXISTS user_service.shops (
     id BIGSERIAL PRIMARY KEY,
     name VARCHAR(200) NOT NULL,
     description TEXT,

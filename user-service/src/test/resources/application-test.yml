@@ -22,7 +22,7 @@ spring:
   flyway:
     enabled: true
     baseline-on-migrate: true
-    locations: classpath:db/migration/user-service
+    locations: classpath:db/migration
     schemas: user_service
 
 server:

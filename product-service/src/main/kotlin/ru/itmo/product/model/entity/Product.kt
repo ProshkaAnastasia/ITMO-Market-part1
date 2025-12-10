@@ -8,7 +8,7 @@ import ru.itmo.product.model.enums.ProductStatus
 import java.time.LocalDateTime
 
 @Entity
-@Table(name = "products")
+@Table(name = "products", schema = "product_service")
 data class Product(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

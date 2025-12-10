@@ -1,14 +1,15 @@
-server:
-  port: 8080
-
 spring:
+  config:
+    import: optional:configserver:${SPRING_CLOUD_CONFIG_URI:http://localhost:8888}
   cloud:
+    config:
+      enabled: true
     gateway:
       routes:
         - id: user-service
           uri: lb://user-service
           predicates:
-            - Path=/api/users/**
+            - Path=/api/users/**,/api/shops/**
         - id: product-service
           uri: lb://product-service
           predicates:
@@ -18,7 +19,10 @@ spring:
           predicates:
             - Path=/api/orders/**,/api/cart/**
 
+server:
+  port: 8080
+
 eureka:
   client:
     serviceUrl:
-      defaultZone: http://eureka:8761/eureka/
+      defaultZone: ${EUREKA_CLIENT_SERVICE_URL_DEFAULT_ZONE:http://localhost:8761/eureka/}

@@ -8,7 +8,7 @@ import ru.itmo.user.model.enums.UserRole
 import java.time.LocalDateTime
 
 @Entity
-@Table(name = "users", uniqueConstraints = [
+@Table(name = "users", schema = "user_service", uniqueConstraints = [
     UniqueConstraint(columnNames = ["username"]),
     UniqueConstraint(columnNames = ["email"])
 ])
@@ -40,7 +40,7 @@ data class User(
     val lastName: String,
 
     @ElementCollection(fetch = FetchType.EAGER)
-    @CollectionTable(name = "user_roles", joinColumns = [JoinColumn(name = "user_id")])
+    @CollectionTable(name = "user_roles", schema = "user_service", joinColumns = [JoinColumn(name = "user_id")])
     @Column(name = "role")
     @Enumerated(EnumType.STRING)
     val roles: Set<UserRole> = setOf(UserRole.USER),

@@ -1,4 +1,4 @@
-CREATE TABLE product_service.comments (
+CREATE TABLE IF NOT EXISTS product_service.comments (
     id BIGSERIAL PRIMARY KEY,
     product_id BIGINT NOT NULL REFERENCES product_service.products(id) ON DELETE CASCADE,
     user_id BIGINT NOT NULL,

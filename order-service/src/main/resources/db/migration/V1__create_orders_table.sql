@@ -1,6 +1,6 @@
 CREATE SCHEMA IF NOT EXISTS order_service;
 
-CREATE TABLE order_service.orders (
+CREATE TABLE IF NOT EXISTS order_service.orders (
     id BIGSERIAL PRIMARY KEY,
     user_id BIGINT NOT NULL,
     total_price NUMERIC(19, 2) NOT NULL DEFAULT 0,

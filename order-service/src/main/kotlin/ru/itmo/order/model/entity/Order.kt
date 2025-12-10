@@ -7,7 +7,7 @@ import ru.itmo.order.model.enums.OrderStatus
 import java.time.LocalDateTime
 
 @Entity
-@Table(name = "orders")
+@Table(name = "orders", schema = "order_service")
 data class Order(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

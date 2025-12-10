@@ -1,7 +1,28 @@
 spring:
-  jpa:
-    hibernate:
-      ddl-auto: validate
+  application:
+    name: product-service
+
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:itmo_market}
+    username: ${DB_USER:itmo_user}
+    password: ${DB_PASSWORD:itmo_password}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+
   flyway:
-    locations: classpath:db/migration/product-service
+    locations: classpath:db/migration
     schemas: product_service
+
+server:
+  port: ${SERVER_PORT:8082}
+
+eureka:
+  client:
+    serviceUrl:
+      defaultZone: ${EUREKA_CLIENT_SERVICE_URL_DEFAULT_ZONE:http://localhost:8761/eureka/}
+
+logging:
+  level:
+    ru.itmo.product: INFO
