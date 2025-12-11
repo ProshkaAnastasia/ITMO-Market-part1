@@ -12,8 +12,8 @@ class OpenApiConfig {
     fun openAPI(): OpenAPI {
         return OpenAPI().apply {
             info = Info().apply {
-                title = "ITMO-Market API"
-                description = "REST API для маркетплейса ITMO-Market"
+                title = "ITMO-Market API order-service"
+                description = "API сервиса заказов для маркетплейса ITMO-Market"
                 version = "1.0.0"
             }
             components = io.swagger.v3.oas.models.Components()

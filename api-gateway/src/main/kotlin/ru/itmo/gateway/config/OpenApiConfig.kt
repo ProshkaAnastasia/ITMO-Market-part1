@@ -1,4 +1,4 @@
-package ru.itmo.product.config
+package ru.itmo.gateway.config
 
 import io.swagger.v3.oas.models.OpenAPI
 import io.swagger.v3.oas.models.info.Info
@@ -12,12 +12,10 @@ class OpenApiConfig {
     fun openAPI(): OpenAPI {
         return OpenAPI().apply {
             info = Info().apply {
-                title = "ITMO-Market API product-service"
-                description = "API сервиса продуктов, комментариев и их модерации для маркетплейса ITMO-Market"
+                title = "ITMO-Market API Gateway"
+                description = "Объединенная API документация для ITMO-Market микросервисов"
                 version = "1.0.0"
             }
-            components = io.swagger.v3.oas.models.Components()
         }
     }
-
 }

@@ -8,7 +8,7 @@ plugins {
 
 // ==================== VERSION VARIABLES ====================
 val springCloudVersion = "2024.0.0"
-val springDocVersion = "2.1.0"
+val springDocVersion = "2.7.0"
 val testcontainersVersion = "1.19.3"
 val mockitoKotlinVersion = "5.1.0"
 val mockitoCoreVersion = "5.2.0"
@@ -48,7 +48,7 @@ subprojects {
         // Jackson - ВСЕМ сервисам
         add("implementation", "com.fasterxml.jackson.module:jackson-module-kotlin")
 
-        // Swagger / OpenAPI - ВСЕМ сервисам
+        // Swagger / OpenAPI сервисам
         add("implementation", "org.springdoc:springdoc-openapi-starter-webmvc-ui:$springDocVersion")
 
         // DevTools - для удобства локальной разработки
