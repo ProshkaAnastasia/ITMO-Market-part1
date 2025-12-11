@@ -9,6 +9,7 @@ import ru.itmo.user.model.dto.response.UserResponse
 import ru.itmo.user.model.entity.User
 import ru.itmo.user.repository.UserRepository
 
+
 @Service
 class UserService(
     private val userRepository: UserRepository
@@ -69,5 +70,4 @@ class UserService(
             createdAt = this.createdAt
         )
     }
-
 }

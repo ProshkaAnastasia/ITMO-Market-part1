@@ -6,3 +6,36 @@ spring:
   cloud:
     config:
       fail-fast: true
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      shopService:
+        registerHealthIndicator: true
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        permittedNumberOfCallsInHalfOpenState: 3
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+        waitDurationInOpenState: 5000ms
+        failureRateThreshold: 50
+        eventConsumerBufferSize: 10
+      
+      userService:
+        registerHealthIndicator: true
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        permittedNumberOfCallsInHalfOpenState: 3
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+        waitDurationInOpenState: 5000ms
+        failureRateThreshold: 50
+        eventConsumerBufferSize: 10
+
+  timelimiter:
+    instances:
+      shopService:
+        cancelRunningFuture: true
+        timeoutDuration: 5000ms
+      
+      userService:
+        cancelRunningFuture: true
+        timeoutDuration: 5000ms

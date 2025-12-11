@@ -1,17 +1,21 @@
 package ru.itmo.user.service
 
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker
+import io.github.resilience4j.timelimiter.annotation.TimeLimiter
 import org.springframework.data.domain.PageRequest
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import ru.itmo.user.exception.ConflictException
 import ru.itmo.user.exception.ForbiddenException
 import ru.itmo.user.exception.ResourceNotFoundException
+import ru.itmo.user.exception.ServiceUnavailableException
 import ru.itmo.user.model.dto.response.PaginatedResponse
 import ru.itmo.user.model.dto.response.ProductResponse
 import ru.itmo.user.model.dto.response.ShopResponse
 import ru.itmo.user.model.entity.Shop
 import ru.itmo.user.repository.ShopRepository
 import ru.itmo.user.service.client.ProductServiceClient
+
 
 @Service
 class ShopService(
@@ -39,12 +43,29 @@ class ShopService(
         return shop.toResponse()
     }
 
+    @CircuitBreaker(
+        name = "productService",
+        fallbackMethod = "getShopProductsFallback"
+    )
+    @TimeLimiter(
+        name = "productService",
+        fallbackMethod = "getShopProductsFallback"
+    )
     fun getShopProducts(shopId: Long, page: Int, pageSize: Int): PaginatedResponse<ProductResponse> {
         if (!shopRepository.existsById(shopId)) {
             throw ResourceNotFoundException("Магазин с ID $shopId не найден")
         }
 
         return productServiceClient.getProductsByShopId(shopId, page, pageSize)
+    }
+
+    fun getShopProductsFallback(
+        shopId: Long,
+        page: Int,
+        pageSize: Int,
+        t: Throwable
+    ): PaginatedResponse<ProductResponse> {
+        throw ServiceUnavailableException("Product service is temporarily unavailable. Please try again later.")
     }
 
     @Transactional
@@ -106,6 +127,14 @@ class ShopService(
         shopRepository.deleteById(shopId)
     }
 
+    @CircuitBreaker(
+        name = "productService",
+        fallbackMethod = "shopToResponseFallback"
+    )
+    @TimeLimiter(
+        name = "productService",
+        fallbackMethod = "shopToResponseFallback"
+    )
     private fun Shop.toResponse(): ShopResponse {
         val seller = userService.getUserById(this.sellerId)
         val productCount = productServiceClient.countProductsByShopId(this.id)
@@ -121,5 +150,9 @@ class ShopService(
             createdAt = this.createdAt,
             updatedAt = this.updatedAt
         )
+    }
+
+    fun shopToResponseFallback(t: Throwable): ShopResponse {
+        throw ServiceUnavailableException("Product service is temporarily unavailable. Please try again later.")
     }
 }
