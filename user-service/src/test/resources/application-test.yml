@@ -2,13 +2,12 @@ spring:
   application:
     name: user-service
 
-  r2dbc:
-    url: r2dbc:postgresql:15-alpine:///itmo_market
-    username: itmo_user
-    password: itmo_password
-    pool:
-      initial-size: 2
-      max-size: 5
+  cloud:
+    config:
+      enabled: false
+    openfeign:
+      circuitbreaker:
+        enabled: false
 
   flyway:
     enabled: true

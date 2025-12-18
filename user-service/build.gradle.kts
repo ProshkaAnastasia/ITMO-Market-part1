@@ -21,4 +21,7 @@ dependencies {
     implementation("io.github.resilience4j:resilience4j-spring-boot3")
     implementation("io.github.resilience4j:resilience4j-circuitbreaker")
     implementation("io.github.resilience4j:resilience4j-timelimiter")
+
+    // === Testing ===
+    testImplementation("io.projectreactor:reactor-test")
 }

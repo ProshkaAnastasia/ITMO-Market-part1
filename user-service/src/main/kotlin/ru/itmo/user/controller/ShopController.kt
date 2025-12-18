@@ -268,6 +268,6 @@ class ShopController(
         userId: Long
     ): Mono<ResponseEntity<Unit>> {
         return shopService.deleteShop(shopId, userId)
-            .map { ResponseEntity.noContent().build() }
+            .then(Mono.just(ResponseEntity.noContent().build()))
     }
 }
