@@ -1,11 +1,15 @@
 package ru.itmo.user.service
 
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker
+import io.github.resilience4j.timelimiter.annotation.TimeLimiter
+import org.springframework.data.domain.PageRequest
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import reactor.core.publisher.Mono
 import ru.itmo.user.exception.ConflictException
 import ru.itmo.user.exception.ForbiddenException
 import ru.itmo.user.exception.ResourceNotFoundException
+import ru.itmo.user.exception.ServiceUnavailableException
 import ru.itmo.user.model.dto.response.PaginatedResponse
 import ru.itmo.user.model.dto.response.ProductResponse
 import ru.itmo.user.model.dto.response.ShopResponse
@@ -54,6 +58,14 @@ class ShopService(
             .flatMap { shop -> buildShopResponse(shop) }
     }
 
+    @CircuitBreaker(
+        name = "productService",
+        fallbackMethod = "getShopProductsFallback"
+    )
+    @TimeLimiter(
+        name = "productService",
+        fallbackMethod = "getShopProductsFallback"
+    )
     fun getShopProducts(shopId: Long, page: Int, pageSize: Int): Mono<PaginatedResponse<ProductResponse>> {
         return shopRepository.existsById(shopId)
             .flatMap { exists ->
@@ -63,6 +75,15 @@ class ShopService(
                     Mono.just(productServiceClient.getProductsByShopId(shopId, page, pageSize))
                 }
             }
+    }
+
+    fun getShopProductsFallback(
+        shopId: Long,
+        page: Int,
+        pageSize: Int,
+        t: Throwable
+    ): PaginatedResponse<ProductResponse> {
+        throw ServiceUnavailableException("Product service is temporarily unavailable. Please try again later.")
     }
 
     @Transactional
@@ -129,6 +150,14 @@ class ShopService(
             }
     }
 
+    @CircuitBreaker(
+        name = "productService",
+        fallbackMethod = "shopToResponseFallback"
+    )
+    @TimeLimiter(
+        name = "productService",
+        fallbackMethod = "shopToResponseFallback"
+    )
     private fun buildShopResponse(shop: Shop): Mono<ShopResponse> {
         return userService.getUserById(shop.sellerId)
             .map { seller ->
@@ -144,5 +173,9 @@ class ShopService(
                     updatedAt = shop.updatedAt
                 )
             }
+    }
+
+    fun shopToResponseFallback(t: Throwable): ShopResponse {
+        throw ServiceUnavailableException("Product service is temporarily unavailable. Please try again later.")
     }
 }

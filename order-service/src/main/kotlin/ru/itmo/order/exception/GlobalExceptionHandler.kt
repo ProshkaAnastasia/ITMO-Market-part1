@@ -221,6 +221,28 @@ class GlobalExceptionHandler {
         )
     }
 
+    @ExceptionHandler(ru.itmo.order.exception.ServiceUnavailableException::class)
+    fun handleServiceUnavailable(
+        ex: ru.itmo.order.exception.ServiceUnavailableException,
+        request: WebRequest
+    ): ResponseEntity<ru.itmo.order.model.dto.response.ErrorResponse> {
+        
+        logger.warn("ServiceUnavailableException [{}]: {}", 
+            request.getDescription(false).replace("uri=", ""), 
+            ex.message
+        )
+        
+        return ResponseEntity(
+            ru.itmo.order.model.dto.response.ErrorResponse(
+                message = ex.message,
+                timestamp = LocalDateTime.now(),
+                path = request.getDescription(false).replace("uri=", ""),
+                status = HttpStatus.SERVICE_UNAVAILABLE.value()
+            ),
+            HttpStatus.SERVICE_UNAVAILABLE
+        )
+    }
+
     private fun formatErrors(errors: List<String>): String {
         return if (errors.isEmpty()) {
             ""
