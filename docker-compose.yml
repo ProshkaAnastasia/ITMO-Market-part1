@@ -25,7 +25,8 @@ services:
     image: adminer:latest
     container_name: itmo-market-adminer
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     ports:
       - "8090:8080"
     environment:
@@ -44,9 +45,6 @@ services:
       - "8761:8761"
     networks:
       - itmo-network
-    depends_on:
-      postgres:
-        condition: service_healthy
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:8761/actuator/health" ]
       interval: 10s
@@ -64,9 +62,6 @@ services:
       - "8888:8888"
     networks:
       - itmo-network
-    depends_on:
-      eureka-server:
-        condition: service_healthy
     volumes:
       - ./config-repo:/app/config-repo
     healthcheck:
