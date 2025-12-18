@@ -7,6 +7,7 @@ dependencies {
     runtimeOnly("org.postgresql:r2dbc-postgresql")
     implementation("org.flywaydb:flyway-core")
     implementation("org.flywaydb:flyway-database-postgresql")
+    implementation("org.postgresql:postgresql") // Необходим для Flyway
 
     // Swagger / OpenAPI
     implementation("org.springdoc:springdoc-openapi-starter-webflux-ui:${rootProject.extra["springDocVersion"]}")
