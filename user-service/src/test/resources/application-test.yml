@@ -2,31 +2,20 @@ spring:
   application:
     name: user-service
 
-  datasource:
-    url: jdbc:tc:postgresql:15-alpine:///itmo_market
+  r2dbc:
+    url: r2dbc:postgresql:15-alpine:///itmo_market
     username: itmo_user
     password: itmo_password
-    driver-class-name: org.testcontainers.jdbc.ContainerDatabaseDriver
-    hikari:
-      maximum-pool-size: 5
-      minimum-idle: 1
-
-  jpa:
-    hibernate:
-      ddl-auto: validate
-    properties:
-      hibernate:
-        dialect: org.hibernate.dialect.PostgreSQLDialect
-    show-sql: false
+    pool:
+      initial-size: 2
+      max-size: 5
 
   flyway:
     enabled: true
     baseline-on-migrate: true
+    baseline-version: 0
     locations: classpath:db/migration
     schemas: user_service
-
-server:
-  port: 8081
 
 eureka:
   client:
@@ -35,4 +24,4 @@ eureka:
 logging:
   level:
     root: WARN
-    ru.itmo.user: INFO
+    ru.itmo.user: DEBUG

@@ -1,12 +1,15 @@
 dependencies {
     // === Spring Boot основное ===
-    implementation("org.springframework.boot:spring-boot-starter-web")
-    implementation("org.springframework.boot:spring-boot-starter-data-jpa")
+    implementation("org.springframework.boot:spring-boot-starter-webflux")
+    implementation("org.springframework.boot:spring-boot-starter-data-r2dbc")
 
     // === База данных ===
-    implementation("org.postgresql:postgresql")
+    runtimeOnly("org.postgresql:r2dbc-postgresql")
     implementation("org.flywaydb:flyway-core")
     implementation("org.flywaydb:flyway-database-postgresql")
+
+    // Swagger / OpenAPI
+    implementation("org.springdoc:springdoc-openapi-starter-webflux-ui:${rootProject.extra["springDocVersion"]}")
 
     // === Spring Cloud Microservices ===
     implementation("org.springframework.cloud:spring-cloud-starter-netflix-eureka-client")

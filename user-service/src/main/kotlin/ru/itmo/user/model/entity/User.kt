@@ -1,55 +1,46 @@
 package ru.itmo.user.model.entity
 
-import jakarta.persistence.*
 import jakarta.validation.constraints.*
-import org.hibernate.annotations.CreationTimestamp
-import org.hibernate.annotations.UpdateTimestamp
 import ru.itmo.user.model.enums.UserRole
+import org.springframework.data.annotation.Id
+import org.springframework.data.annotation.Transient
+import org.springframework.data.relational.core.mapping.Column
+import org.springframework.data.relational.core.mapping.Table
 import java.time.LocalDateTime
 
-@Entity
-@Table(name = "users", schema = "user_service", uniqueConstraints = [
-    UniqueConstraint(columnNames = ["username"]),
-    UniqueConstraint(columnNames = ["email"])
-])
+@Table(name = "users", schema = "user_service")
 data class User(
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Long = 0,
 
     @field:NotBlank(message = "Username не может быть пустым")
     @field:Size(min = 4, max = 32, message = "Username от 4 до 32 символов")
-    @Column(unique = true, nullable = false)
+    @Column("username")
     val username: String,
 
     @field:NotBlank(message = "Email не может быть пустым")
     @field:Email(message = "Некорректный формат email")
-    @Column(unique = true, nullable = false)
+    @Column("email")
     val email: String,
 
     @field:NotBlank(message = "Пароль не может быть пустым")
-    @Column(nullable = false)
+    @Column("password")
     val password: String,
 
     @field:NotBlank(message = "Имя не может быть пустым")
-    @Column(name = "first_name", nullable = false)
+    @Column("first_name")
     val firstName: String,
 
     @field:NotBlank(message = "Фамилия не может быть пустой")
-    @Column(name = "last_name", nullable = false)
+    @Column("last_name")
     val lastName: String,
 
-    @ElementCollection(fetch = FetchType.EAGER)
-    @CollectionTable(name = "user_roles", schema = "user_service", joinColumns = [JoinColumn(name = "user_id")])
-    @Column(name = "role")
-    @Enumerated(EnumType.STRING)
-    val roles: Set<UserRole> = setOf(UserRole.USER),
-
-    @CreationTimestamp
-    @Column(name = "created_at", nullable = false, updatable = false)
+    @Column("created_at")
     val createdAt: LocalDateTime = LocalDateTime.now(),
 
-    @UpdateTimestamp
-    @Column(name = "updated_at", nullable = false)
-    val updatedAt: LocalDateTime = LocalDateTime.now()
+    @Column("updated_at")
+    val updatedAt: LocalDateTime = LocalDateTime.now(),
+
+    @Transient
+    val roles: Set<UserRole> = emptySet()
 )

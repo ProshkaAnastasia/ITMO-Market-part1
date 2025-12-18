@@ -1,8 +1,8 @@
 package ru.itmo.user.service
 
-import org.springframework.data.domain.PageRequest
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import reactor.core.publisher.Mono
 import ru.itmo.user.exception.ConflictException
 import ru.itmo.user.exception.ForbiddenException
 import ru.itmo.user.exception.ResourceNotFoundException
@@ -20,51 +20,72 @@ class ShopService(
     private val userService: UserService
 ) {
 
-    fun getAllShops(page: Int, pageSize: Int): PaginatedResponse<ShopResponse> {
-        val pageable = PageRequest.of(page - 1, pageSize)
-        val shopPage = shopRepository.findAll(pageable)
-        
-        return PaginatedResponse(
-            data = shopPage.content.map { it.toResponse() },
-            page = page,
-            pageSize = pageSize,
-            totalElements = shopPage.totalElements,
-            totalPages = shopPage.totalPages
-        )
+    fun getAllShops(page: Int, pageSize: Int): Mono<PaginatedResponse<ShopResponse>> {
+        return shopRepository.findAll()
+            .skip(((page - 1) * pageSize).toLong())
+            .take(pageSize.toLong())
+            .collectList()
+            .flatMap { shops ->
+                shopRepository.count()
+                    .flatMap { totalCount ->
+                        // Собираем response для каждого магазина
+                        shops.map { buildShopResponse(it) }
+                            .let { monoList ->
+                                Mono.zip(monoList) { responses ->
+                                    responses.map { it as ShopResponse }.toList()
+                                }
+                            }
+                            .map { responses ->
+                                PaginatedResponse(
+                                    data = responses,
+                                    page = page,
+                                    pageSize = pageSize,
+                                    totalElements = totalCount,
+                                    totalPages = ((totalCount + pageSize - 1) / pageSize).toInt()
+                                )
+                            }
+                    }
+            }
     }
 
-    fun getShopById(shopId: Long): ShopResponse {
-        val shop = shopRepository.findById(shopId)
-            .orElseThrow { ResourceNotFoundException("Магазин с ID $shopId не найден") }
-        return shop.toResponse()
+    fun getShopById(shopId: Long): Mono<ShopResponse> {
+        return shopRepository.findById(shopId)
+            .switchIfEmpty(Mono.error(ResourceNotFoundException("Магазин с ID $shopId не найден")))
+            .flatMap { shop -> buildShopResponse(shop) }
     }
 
-    fun getShopProducts(shopId: Long, page: Int, pageSize: Int): PaginatedResponse<ProductResponse> {
-        if (!shopRepository.existsById(shopId)) {
-            throw ResourceNotFoundException("Магазин с ID $shopId не найден")
-        }
-
-        return productServiceClient.getProductsByShopId(shopId, page, pageSize)
+    fun getShopProducts(shopId: Long, page: Int, pageSize: Int): Mono<PaginatedResponse<ProductResponse>> {
+        return shopRepository.existsById(shopId)
+            .flatMap { exists ->
+                if (!exists) {
+                    Mono.error(ResourceNotFoundException("Магазин с ID $shopId не найден"))
+                } else {
+                    Mono.just(productServiceClient.getProductsByShopId(shopId, page, pageSize))
+                }
+            }
     }
 
     @Transactional
-    fun createShop(sellerId: Long, name: String, description: String?, avatarUrl: String?): ShopResponse {
-        if (shopRepository.existsBySellerId(sellerId)) {
-            throw ConflictException("Вы уже создали магазин. Один продавец может иметь только один магазин")
-        }
-
+    fun createShop(sellerId: Long, name: String, description: String?, avatarUrl: String?): Mono<ShopResponse> {
         if (name.isBlank()) {
-            throw IllegalArgumentException("Название магазина не может быть пустым")
+            return Mono.error(IllegalArgumentException("Название магазина не может быть пустым"))
         }
 
-        val shop = Shop(
-            name = name,
-            description = description,
-            avatarUrl = avatarUrl,
-            sellerId = sellerId
-        )
-        val savedShop = shopRepository.save(shop)
-        return savedShop.toResponse()
+        return shopRepository.existsBySellerId(sellerId)
+            .flatMap { exists ->
+                if (exists) {
+                    Mono.error(ConflictException("Вы уже создали магазин. Один продавец может иметь только один магазин"))
+                } else {
+                    val shop = Shop(
+                        name = name,
+                        description = description,
+                        avatarUrl = avatarUrl,
+                        sellerId = sellerId
+                    )
+                    shopRepository.save(shop)
+                        .flatMap { buildShopResponse(it) }
+                }
+            }
     }
 
     @Transactional
@@ -74,52 +95,54 @@ class ShopService(
         name: String?,
         description: String?,
         avatarUrl: String?
-    ): ShopResponse {
-        val shop = shopRepository.findById(shopId)
-            .orElseThrow { ResourceNotFoundException("Магазин с ID $shopId не найден") }
-
-        if (shop.sellerId != userId) {
-            throw ForbiddenException("У вас нет прав для обновления этого магазина")
-        }
-
-        val updatedShop = shop.copy(
-            name = name ?: shop.name,
-            description = description ?: shop.description,
-            avatarUrl = avatarUrl ?: shop.avatarUrl
-        )
-
-        val savedShop = shopRepository.save(updatedShop)
-        return savedShop.toResponse()
+    ): Mono<ShopResponse> {
+        return shopRepository.findById(shopId)
+            .switchIfEmpty(Mono.error(ResourceNotFoundException("Магазин с ID $shopId не найден")))
+            .flatMap { shop ->
+                if (shop.sellerId != userId) {
+                    Mono.error(ForbiddenException("У вас нет прав для обновления этого магазина"))
+                } else {
+                    val updatedShop = shop.copy(
+                        name = name ?: shop.name,
+                        description = description ?: shop.description,
+                        avatarUrl = avatarUrl ?: shop.avatarUrl
+                    )
+                    shopRepository.save(updatedShop)
+                        .flatMap { buildShopResponse(it) }
+                }
+            }
     }
 
     @Transactional
-    fun deleteShop(shopId: Long, userId: Long) {
-        val shop = shopRepository.findById(shopId)
-            .orElseThrow { ResourceNotFoundException("Магазин с ID $shopId не найден") }
-
-        val user = userService.getUserById(userId)
-
-        if (shop.sellerId != userId && !user.roles.contains("ADMIN")) {
-            throw ForbiddenException("У вас нет прав для удаления этого магазина")
-        }
-
-        shopRepository.deleteById(shopId)
+    fun deleteShop(shopId: Long, userId: Long): Mono<Void> {
+        return shopRepository.findById(shopId)
+            .switchIfEmpty(Mono.error(ResourceNotFoundException("Магазин с ID $shopId не найден")))
+            .flatMap { shop ->
+                userService.getUserById(userId)
+                    .flatMap { user ->
+                        if (shop.sellerId != userId && !user.roles.contains("ADMIN")) {
+                            Mono.error(ForbiddenException("У вас нет прав для удаления этого магазина"))
+                        } else {
+                            shopRepository.deleteById(shopId)
+                        }
+                    }
+            }
     }
 
-    private fun Shop.toResponse(): ShopResponse {
-        val seller = userService.getUserById(this.sellerId)
-        val productCount = productServiceClient.countProductsByShopId(this.id)
-
-        return ShopResponse(
-            id = this.id,
-            name = this.name,
-            description = this.description,
-            avatarUrl = this.avatarUrl,
-            sellerId = this.sellerId,
-            sellerName = seller.firstName + " " + seller.lastName,
-            productsCount = productCount,
-            createdAt = this.createdAt,
-            updatedAt = this.updatedAt
-        )
+    private fun buildShopResponse(shop: Shop): Mono<ShopResponse> {
+        return userService.getUserById(shop.sellerId)
+            .map { seller ->
+                ShopResponse(
+                    id = shop.id,
+                    name = shop.name,
+                    description = shop.description,
+                    avatarUrl = shop.avatarUrl,
+                    sellerId = shop.sellerId,
+                    sellerName = "${seller.firstName} ${seller.lastName}",
+                    productsCount = null,
+                    createdAt = shop.createdAt,
+                    updatedAt = shop.updatedAt
+                )
+            }
     }
 }

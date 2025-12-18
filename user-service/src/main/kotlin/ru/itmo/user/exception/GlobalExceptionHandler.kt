@@ -7,8 +7,8 @@ import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.MethodArgumentNotValidException
 import org.springframework.web.bind.annotation.ControllerAdvice
 import org.springframework.web.bind.annotation.ExceptionHandler
-import org.springframework.web.context.request.WebRequest
 import org.springframework.web.method.annotation.HandlerMethodValidationException
+import org.springframework.web.server.ServerWebExchange
 import ru.itmo.user.model.dto.response.ErrorResponse
 import java.time.LocalDateTime
 
@@ -18,19 +18,27 @@ class GlobalExceptionHandler {
     private val logger = LoggerFactory.getLogger(this::class.java)
 
     @ExceptionHandler(ConstraintViolationException::class)
-    fun handleConstraintViolation(ex: ConstraintViolationException): ResponseEntity<ErrorResponse> {
+    fun handleConstraintViolation(
+        ex: ConstraintViolationException,
+        exchange: ServerWebExchange
+    ): ResponseEntity<ErrorResponse> {
         val message = ex.constraintViolations
             .joinToString(", ") { it.message }
 
         return ResponseEntity
             .status(HttpStatus.BAD_REQUEST)
-            .body(ErrorResponse(message))
+            .body(ErrorResponse(
+                message = message,
+                timestamp = LocalDateTime.now(),
+                path = exchange.request.path.value(),
+                status = HttpStatus.BAD_REQUEST.value()
+            ))
     }
 
     @ExceptionHandler(HandlerMethodValidationException::class)
     fun handleValidationException(
         ex: HandlerMethodValidationException,
-        request: WebRequest
+        exchange: ServerWebExchange
     ): ResponseEntity<ErrorResponse> {
 
         val errors = ex.allErrors.map { error ->
@@ -39,7 +47,7 @@ class GlobalExceptionHandler {
 
         val errorMessage = formatErrors(errors)
         logger.warn("Validation error [{}]:{}",
-            request.getDescription(false).replace("uri=", ""),
+            exchange.request.path.value(),
             errorMessage
         )
 
@@ -48,173 +56,166 @@ class GlobalExceptionHandler {
                 message = "Validation failed",
                 errors = errors,
                 timestamp = LocalDateTime.now(),
-                path = request.getDescription(false).replace("uri=", ""),
+                path = exchange.request.path.value(),
                 status = HttpStatus.BAD_REQUEST.value()
             ),
             HttpStatus.BAD_REQUEST
         )
     }
-
 
     @ExceptionHandler(MethodArgumentNotValidException::class)
-    fun handleValidationException(
+    fun handleMethodArgumentNotValidException(
         ex: MethodArgumentNotValidException,
-        request: WebRequest
+        exchange: ServerWebExchange
     ): ResponseEntity<ErrorResponse> {
-        val errors = ex.bindingResult.fieldErrors.map { 
-            "${it.field}: ${it.defaultMessage}" 
+        val errors = ex.bindingResult.fieldErrors.map {
+            "${it.field}: ${it.defaultMessage}"
         }
-        
+
         val errorMessage = formatErrors(errors)
-        logger.warn("Validation error [{}]:{}", 
-            request.getDescription(false).replace("uri=", ""), 
+        logger.warn("Validation error [{}]:{}",
+            exchange.request.path.value(),
             errorMessage
         )
-        
+
         return ResponseEntity(
             ErrorResponse(
                 message = "Validation failed",
                 errors = errors,
                 timestamp = LocalDateTime.now(),
-                path = request.getDescription(false).replace("uri=", ""),
+                path = exchange.request.path.value(),
                 status = HttpStatus.BAD_REQUEST.value()
             ),
             HttpStatus.BAD_REQUEST
         )
     }
-
 
     @ExceptionHandler(ResourceNotFoundException::class)
     fun handleResourceNotFound(
         ex: ResourceNotFoundException,
-        request: WebRequest
+        exchange: ServerWebExchange
     ): ResponseEntity<ErrorResponse> {
-        
-        logger.warn("ResourceNotFoundException [{}]: {}", 
-            request.getDescription(false).replace("uri=", ""), 
+
+        logger.warn("ResourceNotFoundException [{}]: {}",
+            exchange.request.path.value(),
             ex.message
         )
-        
+
         return ResponseEntity(
             ErrorResponse(
                 message = ex.message,
                 timestamp = LocalDateTime.now(),
-                path = request.getDescription(false).replace("uri=", ""),
+                path = exchange.request.path.value(),
                 status = HttpStatus.NOT_FOUND.value()
             ),
             HttpStatus.NOT_FOUND
         )
     }
 
-
     @ExceptionHandler(UnauthorizedException::class)
     fun handleUnauthorized(
         ex: UnauthorizedException,
-        request: WebRequest
+        exchange: ServerWebExchange
     ): ResponseEntity<ErrorResponse> {
-        
-        logger.warn("UnauthorizedException [{}]: {}", 
-            request.getDescription(false).replace("uri=", ""), 
+
+        logger.warn("UnauthorizedException [{}]: {}",
+            exchange.request.path.value(),
             ex.message
         )
-        
+
         return ResponseEntity(
             ErrorResponse(
                 message = ex.message,
                 timestamp = LocalDateTime.now(),
-                path = request.getDescription(false).replace("uri=", ""),
+                path = exchange.request.path.value(),
                 status = HttpStatus.UNAUTHORIZED.value()
             ),
             HttpStatus.UNAUTHORIZED
         )
     }
 
-
     @ExceptionHandler(ForbiddenException::class)
     fun handleForbidden(
         ex: ForbiddenException,
-        request: WebRequest
+        exchange: ServerWebExchange
     ): ResponseEntity<ErrorResponse> {
-        
-        logger.warn("ForbiddenException [{}]: {}", 
-            request.getDescription(false).replace("uri=", ""), 
+
+        logger.warn("ForbiddenException [{}]: {}",
+            exchange.request.path.value(),
             ex.message
         )
-        
+
         return ResponseEntity(
             ErrorResponse(
                 message = ex.message,
                 timestamp = LocalDateTime.now(),
-                path = request.getDescription(false).replace("uri=", ""),
+                path = exchange.request.path.value(),
                 status = HttpStatus.FORBIDDEN.value()
             ),
             HttpStatus.FORBIDDEN
         )
     }
 
-
     @ExceptionHandler(BadRequestException::class)
     fun handleBadRequest(
         ex: BadRequestException,
-        request: WebRequest
+        exchange: ServerWebExchange
     ): ResponseEntity<ErrorResponse> {
-        
-        logger.warn("BadRequestException [{}]: {}", 
-            request.getDescription(false).replace("uri=", ""), 
+
+        logger.warn("BadRequestException [{}]: {}",
+            exchange.request.path.value(),
             ex.message
         )
-        
+
         return ResponseEntity(
             ErrorResponse(
                 message = ex.message,
                 timestamp = LocalDateTime.now(),
-                path = request.getDescription(false).replace("uri=", ""),
+                path = exchange.request.path.value(),
                 status = HttpStatus.BAD_REQUEST.value()
             ),
             HttpStatus.BAD_REQUEST
         )
     }
 
-
     @ExceptionHandler(ConflictException::class)
     fun handleConflict(
         ex: ConflictException,
-        request: WebRequest
+        exchange: ServerWebExchange
     ): ResponseEntity<ErrorResponse> {
-        
-        logger.warn("ConflictException [{}]: {}", 
-            request.getDescription(false).replace("uri=", ""), 
+
+        logger.warn("ConflictException [{}]: {}",
+            exchange.request.path.value(),
             ex.message
         )
-        
+
         return ResponseEntity(
             ErrorResponse(
                 message = ex.message,
                 timestamp = LocalDateTime.now(),
-                path = request.getDescription(false).replace("uri=", ""),
+                path = exchange.request.path.value(),
                 status = HttpStatus.CONFLICT.value()
             ),
             HttpStatus.CONFLICT
         )
     }
 
-
     @ExceptionHandler(Exception::class)
     fun handleGlobalException(
         ex: Exception,
-        request: WebRequest
+        exchange: ServerWebExchange
     ): ResponseEntity<ErrorResponse> {
-        
-        logger.error("${ex::class.simpleName} [{}]: {}", 
-            request.getDescription(false).replace("uri=", ""), 
+
+        logger.error("${ex::class.simpleName} [{}]: {}",
+            exchange.request.path.value(),
             ex.message
         )
-        
+
         return ResponseEntity(
             ErrorResponse(
                 message = "Internal server error",
                 timestamp = LocalDateTime.now(),
-                path = request.getDescription(false).replace("uri=", ""),
+                path = exchange.request.path.value(),
                 status = HttpStatus.INTERNAL_SERVER_ERROR.value()
             ),
             HttpStatus.INTERNAL_SERVER_ERROR

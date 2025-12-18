@@ -13,6 +13,7 @@ import jakarta.validation.constraints.Min
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
+import reactor.core.publisher.Mono
 import ru.itmo.user.model.dto.request.CreateShopRequest
 import ru.itmo.user.model.dto.request.UpdateShopRequest
 import ru.itmo.user.model.dto.response.PaginatedResponse
@@ -59,8 +60,9 @@ class ShopController(
         @Min(1, message = "pageSize должен быть больше 0")
         @Max(50, message = "pageSize не может превышать 50")
         pageSize: Int
-    ): ResponseEntity<PaginatedResponse<ShopResponse>> {
-        return ResponseEntity.ok(shopService.getAllShops(page, pageSize))
+    ): Mono<ResponseEntity<PaginatedResponse<ShopResponse>>> {
+        return shopService.getAllShops(page, pageSize)
+            .map { ResponseEntity.ok(it) }
     }
 
     @GetMapping("/{id}")
@@ -94,8 +96,9 @@ class ShopController(
         @Parameter(description = "ID магазина", example = "1")
         @Min(1, message = "shopId должен быть больше 0")
         id: Long
-    ): ResponseEntity<ShopResponse> {
-        return ResponseEntity.ok(shopService.getShopById(id))
+    ): Mono<ResponseEntity<ShopResponse>> {
+        return shopService.getShopById(id)
+            .map { ResponseEntity.ok(it) }
     }
 
     @GetMapping("/{id}/products")
@@ -138,8 +141,9 @@ class ShopController(
         @Min(1, message = "pageSize должен быть больше 0")
         @Max(50, message = "pageSize не может превышать 50")
         pageSize: Int
-    ): ResponseEntity<PaginatedResponse<ProductResponse>> {
-        return ResponseEntity.ok(shopService.getShopProducts(id, page, pageSize))
+    ): Mono<ResponseEntity<PaginatedResponse<ProductResponse>>> {
+        return shopService.getShopProducts(id, page, pageSize)
+            .map { ResponseEntity.ok(it) }
     }
 
     @PostMapping
@@ -160,7 +164,7 @@ class ShopController(
             ),
             ApiResponse(
                 responseCode = "409",
-                description = "ConflictException: магазин с таким названием уже существует"
+                description = "ConflictException: вы уже создали магазин"
             ),
             ApiResponse(
                 responseCode = "500",
@@ -174,14 +178,9 @@ class ShopController(
         @Min(1, message = "userId должен быть больше 0")
         userId: Long,
         @Valid @RequestBody request: CreateShopRequest
-    ): ResponseEntity<ShopResponse> {
-        val response = shopService.createShop(
-            sellerId = userId,
-            name = request.name,
-            description = request.description,
-            avatarUrl = request.avatarUrl
-        )
-        return ResponseEntity.status(HttpStatus.CREATED).body(response)
+    ): Mono<ResponseEntity<ShopResponse>> {
+        return shopService.createShop(userId, request.name, request.description, request.avatarUrl)
+            .map { ResponseEntity.status(HttpStatus.CREATED).body(it) }
     }
 
     @PutMapping("/{shopId}")
@@ -224,8 +223,9 @@ class ShopController(
         @Min(1, message = "userId должен быть больше 0")
         userId: Long,
         @Valid @RequestBody request: UpdateShopRequest
-    ): ResponseEntity<ShopResponse> {
-        return ResponseEntity.ok(shopService.updateShop(shopId, userId, request.name, request.description, request.avatarUrl))
+    ): Mono<ResponseEntity<ShopResponse>> {
+        return shopService.updateShop(shopId, userId, request.name, request.description, request.avatarUrl)
+            .map { ResponseEntity.ok(it) }
     }
 
     @DeleteMapping("/{shopId}")
@@ -266,8 +266,8 @@ class ShopController(
         @Parameter(description = "ID пользователя", example = "1")
         @Min(1, message = "userId должен быть больше 0")
         userId: Long
-    ): ResponseEntity<Unit> {
-        shopService.deleteShop(shopId, userId)
-        return ResponseEntity.noContent().build()
+    ): Mono<ResponseEntity<Unit>> {
+        return shopService.deleteShop(shopId, userId)
+            .map { ResponseEntity.noContent().build() }
     }
 }

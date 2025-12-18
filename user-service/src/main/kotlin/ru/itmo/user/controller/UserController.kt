@@ -11,6 +11,7 @@ import jakarta.validation.Valid
 import jakarta.validation.constraints.Min
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
+import reactor.core.publisher.Mono
 import ru.itmo.user.model.dto.request.UpdateProfileRequest
 import ru.itmo.user.model.dto.response.UserResponse
 import ru.itmo.user.service.UserService
@@ -54,8 +55,9 @@ class UserController(
         @Parameter(description = "ID пользователя", example = "1")
         @Min(1, message = "userId должен быть больше 0")
         userId: Long
-    ): ResponseEntity<UserResponse> {
-        return ResponseEntity.ok(userService.getCurrentUser(userId))
+    ): Mono<ResponseEntity<UserResponse>> {
+        return userService.getCurrentUser(userId)
+            .map { ResponseEntity.ok(it) }
     }
 
     @PutMapping("/me")
@@ -94,10 +96,9 @@ class UserController(
         @Min(1, message = "userId должен быть больше 0")
         userId: Long,
         @Valid @RequestBody request: UpdateProfileRequest
-    ): ResponseEntity<UserResponse> {
-        return ResponseEntity.ok(
-            userService.updateProfile(userId, request.email, request.firstName, request.lastName)
-        )
+    ): Mono<ResponseEntity<UserResponse>> {
+        return userService.updateProfile(userId, request.email, request.firstName, request.lastName)
+            .map { ResponseEntity.ok(it) }
     }
 
     @DeleteMapping("/me")
@@ -130,9 +131,9 @@ class UserController(
         @Parameter(description = "ID пользователя", example = "1")
         @Min(1, message = "userId должен быть больше 0")
         userId: Long
-    ): ResponseEntity<Unit> {
-        userService.deleteProfile(userId)
-        return ResponseEntity.noContent().build()
+    ): Mono<ResponseEntity<Unit>> {
+        return userService.deleteProfile(userId)
+            .map { ResponseEntity.noContent().build() }
     }
 
     @GetMapping("/{userId}")
@@ -174,11 +175,15 @@ class UserController(
         @Parameter(description = "ID пользователя", example = "1")
         @Min(1, message = "userId должен быть больше 0")
         userId: Long
-    ): ResponseEntity<UserResponse> {
-        val roles = userService.getUserById(adminId).roles
-        if (!roles.contains("ADMIN")) {
-            throw ForbiddenException("Only administrators can access user information")
-        }
-        return ResponseEntity.ok(userService.getUserById(userId))
+    ): Mono<ResponseEntity<UserResponse>> {
+        return userService.getUserById(adminId)
+            .flatMap { admin ->
+                if (!admin.roles.contains("ADMIN")) {
+                    Mono.error(ForbiddenException("Only administrators can access user information"))
+                } else {
+                    userService.getUserById(userId)
+                        .map { ResponseEntity.ok(it) }
+                }
+            }
     }
 }

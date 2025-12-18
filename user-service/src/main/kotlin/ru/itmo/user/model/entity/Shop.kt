@@ -1,39 +1,33 @@
 package ru.itmo.user.model.entity
 
-import jakarta.persistence.*
 import jakarta.validation.constraints.*
-import org.hibernate.annotations.CreationTimestamp
-import org.hibernate.annotations.UpdateTimestamp
+import org.springframework.data.annotation.Id
+import org.springframework.data.relational.core.mapping.Column
+import org.springframework.data.relational.core.mapping.Table
 import java.time.LocalDateTime
 
-@Entity
-@Table(name = "shops", schema = "user_service", uniqueConstraints = [
-    UniqueConstraint(columnNames = ["seller_id"])
-])
+@Table(name = "shops", schema = "user_service")
 data class Shop(
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Long = 0,
 
     @field:NotBlank(message = "Название магазина не может быть пустым")
     @field:Size(max = 200)
-    @Column(nullable = false)
+    @Column("name")
     val name: String,
 
-    @Column(columnDefinition = "TEXT")
+    @Column("description")
     val description: String? = null,
 
-    @Column(name = "avatar_url")
+    @Column("avatar_url")
     val avatarUrl: String? = null,
 
-    @Column(name = "seller_id", nullable = false, unique = true)
+    @Column("seller_id")
     val sellerId: Long,
 
-    @CreationTimestamp
-    @Column(name = "created_at", nullable = false, updatable = false)
+    @Column("created_at")
     val createdAt: LocalDateTime = LocalDateTime.now(),
 
-    @UpdateTimestamp
-    @Column(name = "updated_at", nullable = false)
+    @Column("updated_at")
     val updatedAt: LocalDateTime = LocalDateTime.now()
 )
