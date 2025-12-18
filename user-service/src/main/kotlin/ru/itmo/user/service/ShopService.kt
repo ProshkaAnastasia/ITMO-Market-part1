@@ -72,7 +72,8 @@ class ShopService(
                 if (!exists) {
                     Mono.error(ResourceNotFoundException("Магазин с ID $shopId не найден"))
                 } else {
-                    Mono.just(productServiceClient.getProductsByShopId(shopId, page, pageSize))
+                    Mono.fromCallable { productServiceClient.getProductsByShopId(shopId, page, pageSize) }
+                        .subscribeOn(Schedulers.boundedElastic())
                 }
             }
     }
@@ -82,7 +83,7 @@ class ShopService(
         page: Int,
         pageSize: Int,
         t: Throwable
-    ): PaginatedResponse<ProductResponse> {
+    ): Mono<PaginatedResponse<ProductResponse>> {
         throw ServiceUnavailableException("Product service is temporarily unavailable. Please try again later.")
     }
 
@@ -181,7 +182,7 @@ class ShopService(
         }
     }
 
-    fun shopToResponseFallback(t: Throwable): ShopResponse {
+    fun shopToResponseFallback(shop: Shop, t: Throwable): Mono<ShopResponse> {
         throw ServiceUnavailableException("Product service is temporarily unavailable. Please try again later.")
     }
 }
