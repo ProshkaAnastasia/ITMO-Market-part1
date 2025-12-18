@@ -3,6 +3,7 @@ package ru.itmo.user.model.entity
 import jakarta.validation.constraints.*
 import ru.itmo.user.model.enums.UserRole
 import org.springframework.data.annotation.Id
+import org.springframework.data.annotation.PersistenceCreator
 import org.springframework.data.annotation.Transient
 import org.springframework.data.relational.core.mapping.Column
 import org.springframework.data.relational.core.mapping.Table
@@ -43,4 +44,26 @@ data class User(
 
     @Transient
     val roles: Set<UserRole> = emptySet()
-)
+) {
+    @PersistenceCreator
+    constructor(
+        id: Long,
+        username: String,
+        email: String,
+        password: String,
+        firstName: String,
+        lastName: String,
+        createdAt: LocalDateTime,
+        updatedAt: LocalDateTime
+    ) : this(
+        id = id,
+        username = username,
+        email = email,
+        password = password,
+        firstName = firstName,
+        lastName = lastName,
+        createdAt = createdAt,
+        updatedAt = updatedAt,
+        roles = emptySet()
+    )
+}

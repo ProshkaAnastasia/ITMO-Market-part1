@@ -8,6 +8,6 @@ import ru.itmo.user.model.entity.UserRoleEntity
 
 @Repository
 interface UserRoleRepository : R2dbcRepository<UserRoleEntity, Long> {
-    @Query("SELECT role FROM user_roles WHERE user_id = :userId")
+    @Query("SELECT role FROM user_service.user_roles WHERE user_id = :userId")
     fun findRolesByUserId(userId: Long): Flux<String>
 }

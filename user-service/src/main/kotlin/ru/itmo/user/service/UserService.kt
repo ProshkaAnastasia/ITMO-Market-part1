@@ -24,10 +24,8 @@ class UserService(
             .flatMap { user ->
                 userRoleRepository.findRolesByUserId(userId)
                     .map { UserRole.valueOf(it) }
-                    .collect({ mutableSetOf<UserRole>() }) { set, role ->
-                        set.add(role)
-                    }
-                    .map { roles -> user.copy(roles = roles) }
+                    .collectList()
+                    .map { roles -> user.copy(roles = roles.toSet()) }
             }
             .map { it.toResponse() }
             .switchIfEmpty(Mono.error(ResourceNotFoundException("Пользователь $userId не найден")))
