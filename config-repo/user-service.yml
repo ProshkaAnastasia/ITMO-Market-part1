@@ -19,15 +19,6 @@ spring:
     locations: classpath:db/migration
     schemas: user_service
 
-#springdoc:
-#  api-docs:
-#    path: /v3/api-docs
-#    enabled: true
-#  swagger-ui:
-#    path: /swagger-ui.html
-#    enabled: true
-#  enable-native-support: true
-
 server:
   port: ${SERVER_PORT:8081}
   compression:
