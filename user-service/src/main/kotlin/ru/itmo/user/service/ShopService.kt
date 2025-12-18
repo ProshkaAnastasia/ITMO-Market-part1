@@ -2,10 +2,10 @@ package ru.itmo.user.service
 
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker
 import io.github.resilience4j.timelimiter.annotation.TimeLimiter
-import org.springframework.data.domain.PageRequest
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import reactor.core.publisher.Mono
+import reactor.core.scheduler.Schedulers
 import ru.itmo.user.exception.ConflictException
 import ru.itmo.user.exception.ForbiddenException
 import ru.itmo.user.exception.ResourceNotFoundException
@@ -159,20 +159,26 @@ class ShopService(
         fallbackMethod = "shopToResponseFallback"
     )
     private fun buildShopResponse(shop: Shop): Mono<ShopResponse> {
-        return userService.getUserById(shop.sellerId)
-            .map { seller ->
-                ShopResponse(
-                    id = shop.id,
-                    name = shop.name,
-                    description = shop.description,
-                    avatarUrl = shop.avatarUrl,
-                    sellerId = shop.sellerId,
-                    sellerName = "${seller.firstName} ${seller.lastName}",
-                    productsCount = null,
-                    createdAt = shop.createdAt,
-                    updatedAt = shop.updatedAt
-                )
-            }
+        return Mono.zip(
+            userService.getUserById(shop.sellerId),
+            Mono.fromCallable { productServiceClient.countProductsByShopId(shop.id) }
+                .subscribeOn(Schedulers.boundedElastic())
+        ).map { tuple ->
+            val seller = tuple.t1
+            val productsCount = tuple.t2
+
+            ShopResponse(
+                id = shop.id,
+                name = shop.name,
+                description = shop.description,
+                avatarUrl = shop.avatarUrl,
+                sellerId = shop.sellerId,
+                sellerName = "${seller.firstName} ${seller.lastName}",
+                productsCount = productsCount,
+                createdAt = shop.createdAt,
+                updatedAt = shop.updatedAt
+            )
+        }
     }
 
     fun shopToResponseFallback(t: Throwable): ShopResponse {

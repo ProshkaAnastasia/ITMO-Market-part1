@@ -6,6 +6,9 @@ spring:
   cloud:
     config:
       fail-fast: true
+    loadbalancer:
+      ribbon:
+        enabled: true
 
 resilience4j:
   circuitbreaker:
