@@ -54,7 +54,7 @@ class UserService(
                         )
                     }
 
-                    userRepository.existsByEmail(newEmail)
+                    return@flatMap userRepository.existsByEmail(newEmail)
                         .flatMap { exists ->
                             if (exists) {
                                 Mono.error(ConflictException("Email $newEmail уже используется"))

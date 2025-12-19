@@ -133,7 +133,7 @@ class UserController(
         userId: Long
     ): Mono<ResponseEntity<Unit>> {
         return userService.deleteProfile(userId)
-            .map { ResponseEntity.noContent().build() }
+            .then(Mono.just(ResponseEntity.noContent().build()))
     }
 
     @GetMapping("/{userId}")
